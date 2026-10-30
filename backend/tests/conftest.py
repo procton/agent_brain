@@ -132,14 +132,13 @@ class LiveServer:
 @pytest.fixture
 async def live(tmp_path) -> LiveServer:
     import asyncio
+
     import uvicorn
 
     settings = build_settings(tmp_path)
     app = create_app(settings)
 
-    config = uvicorn.Config(
-        app, host="127.0.0.1", port=0, loop="asyncio", http="h11", log_level="warning"
-    )
+    config = uvicorn.Config(app, host="127.0.0.1", port=0, loop="asyncio", http="h11", log_level="warning")
     server = uvicorn.Server(config)
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()

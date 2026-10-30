@@ -11,8 +11,8 @@ from pydantic import ValidationError
 
 from backend.app.schemas.normalized import IngestReport
 from backend.app.schemas.source import EventBatch
+from backend.app.security import require_ingest_token
 from backend.app.services.ingest import IngestionService
-from backend.app.security import require_ingest_token, validate_browser_origin
 
 logger = logging.getLogger("observatory.ingest")
 

@@ -9,13 +9,11 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any
 
 import httpx
-import pytest
 import websockets
 
-from backend.app.schemas.source import EventBatch, SourceEvent
+from backend.app.schemas.source import SourceEvent
 from backend.tests.conftest import (
     TEST_ORIGINS,
     LiveServer,
@@ -79,7 +77,7 @@ async def _subscribe_and_collect(
         while asyncio.get_running_loop().time() < deadline:
             try:
                 message = await asyncio.wait_for(ws.recv(), timeout=0.2)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 if replay_done_seen:
                     break
                 continue
@@ -120,7 +118,7 @@ async def test_live_delivery_while_connected(live: LiveServer):
         while asyncio.get_running_loop().time() < deadline:
             try:
                 data = json.loads(await asyncio.wait_for(ws.recv(), timeout=0.3))
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 if ingest_task.done():
                     ingest_task.result()  # surface ingest errors
                     continue
@@ -246,9 +244,7 @@ async def test_ws_rejects_foreign_origin(live: LiveServer):
     cookies = await browser_login(live.base_url, live.app.state.dashboard_code)
     token = cookie_header(cookies)
     headers = {"Origin": "https://evil.example.com", "Cookie": f"observatory_dashboard={token}"}
-    async with websockets.connect(
-        _ws_url(live, "whatever"), additional_headers=headers
-    ) as ws:
+    async with websockets.connect(_ws_url(live, "whatever"), additional_headers=headers) as ws:
         data = json.loads(await ws.recv())
         assert data["type"] == "error"
         assert "origin" in data["detail"]
@@ -256,9 +252,7 @@ async def test_ws_rejects_foreign_origin(live: LiveServer):
 
 async def test_ws_rejects_missing_cookie(live: LiveServer):
     headers = {"Origin": TEST_ORIGINS[0]}
-    async with websockets.connect(
-        _ws_url(live, "whatever"), additional_headers=headers
-    ) as ws:
+    async with websockets.connect(_ws_url(live, "whatever"), additional_headers=headers) as ws:
         data = json.loads(await ws.recv())
         assert data["type"] == "error"
         assert "dashboard session" in data["detail"]

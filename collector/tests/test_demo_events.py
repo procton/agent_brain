@@ -5,8 +5,6 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 
-import pytest
-
 from backend.app.schemas.base import EVENT_KINDS
 from backend.app.schemas.source import SourceEvent
 from collector.demo_events import FIXTURE_PATH, build_events, load_fixture

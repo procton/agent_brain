@@ -55,9 +55,7 @@ class Settings:
 
     @property
     def spool_dir(self) -> Path:
-        return Path(
-            os.environ.get("OBSERVATORY_SPOOL_DIR", str(self.data_dir / "spool"))
-        )
+        return Path(os.environ.get("OBSERVATORY_SPOOL_DIR", str(self.data_dir / "spool")))
 
     @property
     def dashboard_code_path(self) -> Path:
@@ -65,7 +63,7 @@ class Settings:
 
     @property
     def frontend_dist_dir(self) -> Path:
-        repo_root = Path(__file__).resolve().parents[3]
+        repo_root = Path(__file__).resolve().parents[2]
         return repo_root / "frontend" / "dist"
 
     @property
@@ -84,7 +82,7 @@ class Settings:
         if not self.production:
             dev_origins = os.environ.get(
                 "OBSERVATORY_DEV_ORIGINS",
-                f"http://localhost:5173 http://127.0.0.1:5173 http://[::1]:5173",
+                "http://localhost:5173 http://127.0.0.1:5173 http://[::1]:5173",
             )
             origins.update(dev_origins.split())
         return frozenset(origins)
@@ -98,7 +96,7 @@ def create_credential_file(path: Path) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
         token = secret_from_file(path)
-    except (FileNotFoundError):
+    except FileNotFoundError:
         token = os.urandom(32).hex()
         _write_private_file(path, token)
     return token

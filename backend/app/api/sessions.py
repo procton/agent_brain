@@ -7,9 +7,10 @@ import hmac
 from fastapi import APIRouter, HTTPException, Query, Request, Response
 from sqlalchemy import select
 
-from backend.app.database.models import Event, Session as SessionRow, utc_now_iso
+from backend.app.database.models import Event, utc_now_iso
+from backend.app.database.models import Session as SessionRow
 from backend.app.schemas.normalized import EventsPage, SnapshotResponse
-from backend.app.security import BrowserSessions, DASHBOARD_COOKIE_NAME, validate_browser_origin
+from backend.app.security import DASHBOARD_COOKIE_NAME, BrowserSessions, validate_browser_origin
 from backend.app.services.views import to_normalized_event, to_session_view
 
 router = APIRouter()
@@ -37,9 +38,7 @@ async def create_browser_session(request: Request, response: Response) -> dict:
     except Exception:
         body = {}
     code = body.get("code") if isinstance(body, dict) else None
-    code_ok = isinstance(code, str) and hmac.compare_digest(
-        code, request.app.state.dashboard_code
-    )
+    code_ok = isinstance(code, str) and hmac.compare_digest(code, request.app.state.dashboard_code)
     if not code_ok:
         raise HTTPException(status_code=403, detail="invalid access code")
     sessions: BrowserSessions = request.app.state.browser_sessions
@@ -77,9 +76,7 @@ def require_dashboard(request: Request) -> None:
 
 
 async def _get_session_or_404(db, session_id: str) -> SessionRow:
-    row = (
-        await db.execute(select(SessionRow).where(SessionRow.id == session_id))
-    ).scalar_one_or_none()
+    row = (await db.execute(select(SessionRow).where(SessionRow.id == session_id))).scalar_one_or_none()
     if row is None:
         raise HTTPException(status_code=404, detail="session not found")
     return row

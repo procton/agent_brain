@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import uuid
-
 from backend.app.main import create_app
 from backend.tests.conftest import build_settings, dispose_app, make_source_events
 
@@ -15,7 +13,9 @@ async def test_events_survive_backend_restart(tmp_path):
 
     # "first process"
     app_one = create_app(settings)
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app_one), base_url="http://127.0.0.1") as client:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app_one), base_url="http://127.0.0.1"
+    ) as client:
         login = await client.post(
             "/api/auth/browser-session",
             json={"code": app_one.state.dashboard_code},
@@ -34,7 +34,9 @@ async def test_events_survive_backend_restart(tmp_path):
 
     # "second process": same data dir, fresh app (migrations are idempotent)
     app_two = create_app(settings)
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app_two), base_url="http://127.0.0.1") as client:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app_two), base_url="http://127.0.0.1"
+    ) as client:
         await client.post(
             "/api/auth/browser-session",
             json={"code": app_two.state.dashboard_code},
@@ -55,7 +57,9 @@ async def test_duplicate_ingestion_after_restart_does_not_duplicate(tmp_path):
     settings = build_settings(tmp_path)
     app_one = create_app(settings)
     events = make_source_events(2, session_id="synthetic-demo-0002")
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app_one), base_url="http://127.0.0.1") as client:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app_one), base_url="http://127.0.0.1"
+    ) as client:
         await client.post(
             "/api/auth/browser-session",
             json={"code": app_one.state.dashboard_code},
@@ -69,7 +73,9 @@ async def test_duplicate_ingestion_after_restart_does_not_duplicate(tmp_path):
     await dispose_app(app_one)
 
     app_two = create_app(settings)
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app_two), base_url="http://127.0.0.1") as client:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app_two), base_url="http://127.0.0.1"
+    ) as client:
         await client.post(
             "/api/auth/browser-session",
             json={"code": app_two.state.dashboard_code},

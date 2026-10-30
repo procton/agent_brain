@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Local, metadata-first observatory for agent coding activity (MVP vertical slice)."
 requires-python = ">=3.12"
 readme = "README.md"
-license = { text = "Proprietary" }
+license = { text = "Apache-2.0" }
 
 dependencies = [
     "fastapi>=0.115",

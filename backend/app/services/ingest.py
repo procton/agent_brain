@@ -19,7 +19,8 @@ from sqlalchemy import select
 
 from backend.app.config import Settings
 from backend.app.database.engine import SessionFactory
-from backend.app.database.models import Event, Machine, Session as SessionRow, utc_now_iso
+from backend.app.database.models import Event, Machine, utc_now_iso
+from backend.app.database.models import Session as SessionRow
 from backend.app.schemas.base import SESSION_STATE_BY_KIND, should_update_state
 from backend.app.schemas.normalized import SessionView
 from backend.app.schemas.source import EventBatch, SourceEvent
@@ -168,9 +169,7 @@ class IngestionService:
     async def _touch_machine(self, db, source_event: SourceEvent) -> None:
         now = utc_now_iso()
         machine = (
-            await db.execute(
-                select(Machine).where(Machine.id == source_event.machine_id)
-            )
+            await db.execute(select(Machine).where(Machine.id == source_event.machine_id))
         ).scalar_one_or_none()
         if machine is None:
             db.add(Machine(id=source_event.machine_id, first_seen_at=now, last_seen_at=now))

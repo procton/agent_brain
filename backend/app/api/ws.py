@@ -24,7 +24,8 @@ import asyncio
 from fastapi import APIRouter, WebSocket
 from sqlalchemy import select
 
-from backend.app.database.models import Event, Session as SessionRow
+from backend.app.database.models import Event
+from backend.app.database.models import Session as SessionRow
 from backend.app.schemas.normalized import SessionView
 from backend.app.security import cookie_from_scope
 from backend.app.services.hub import Broadcast, Subscription
@@ -52,9 +53,7 @@ async def session_live(websocket: WebSocket, session_id: str) -> None:
         return
 
     async with websocket.app.state.sessions() as db:
-        row = (
-            await db.execute(select(SessionRow).where(SessionRow.id == session_id))
-        ).scalar_one_or_none()
+        row = (await db.execute(select(SessionRow).where(SessionRow.id == session_id))).scalar_one_or_none()
     if row is None:
         await _accept_then_fail(websocket, "session not found")
         return

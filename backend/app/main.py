@@ -30,6 +30,8 @@ from backend.app.config import (
     Settings,
     create_credential_file,
     create_dashboard_code_file,
+)
+from backend.app.config import (
     settings as default_settings,
 )
 from backend.app.database.engine import SessionFactory, build_async_engine
@@ -52,6 +54,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     session_factory = SessionFactory(engine)
     hub = BroadcastHub()
     ingestion = IngestionService(settings, session_factory, hub)
+
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         yield
@@ -83,9 +86,7 @@ def prepare_data_directory(settings: Settings) -> None:
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     create_credential_file(settings.credential_path)
     create_dashboard_code_file(settings.dashboard_code_path)
-    logger.info(
-        "observatory data directory: %s", settings.data_dir
-    )
+    logger.info("observatory data directory: %s", settings.data_dir)
 
 
 def _mount_frontend(app: FastAPI, dist_dir: Path) -> None:

@@ -16,7 +16,6 @@ The daemon performs no capture-side work.
 from __future__ import annotations
 
 import asyncio
-import json
 import random
 
 import httpx
@@ -120,7 +119,7 @@ class CollectorDaemon:
             nap += jitter
         try:
             await asyncio.wait_for(self._stop.wait(), timeout=nap)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pass
 
     # -- delivery ------------------------------------------------------------
@@ -154,9 +153,8 @@ class CollectorDaemon:
             # retrying unchanged; quarantine permanently invalid entries.
             self.stats["temporary_failures"] += 1
             if status in (422, 413):
-                note = (
-                    f"batch rejected ({status}); quarantining {len(batch)} invalid entr(y|ies)"
-                    .replace("(y|ies)", "y" if len(batch) == 1 else "ies")
+                note = f"batch rejected ({status}); quarantining {len(batch)} invalid entr(y|ies)".replace(
+                    "(y|ies)", "y" if len(batch) == 1 else "ies"
                 )
                 self.spool.note_diagnostics(note)
                 for item in batch:

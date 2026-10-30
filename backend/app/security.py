@@ -22,6 +22,7 @@ from __future__ import annotations
 import hmac
 import time
 from dataclasses import dataclass
+
 from fastapi import HTTPException, Request, Response, status
 
 from backend.app.config import Settings

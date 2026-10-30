@@ -4,10 +4,11 @@ Revision ID: 0001_initial
 Revises:
 Create Date: 2026-10-29
 """
+
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 
 revision = "0001_initial"
 down_revision = None
@@ -37,9 +38,7 @@ def upgrade() -> None:
         sa.Column("last_activity_at", sa.String(length=40), nullable=True),
         sa.Column("event_count", sa.Integer(), nullable=False),
         sa.Column("latest_cursor", sa.Integer(), nullable=False),
-        sa.UniqueConstraint(
-            "source", "machine_id", "source_session_id", name="uq_session_source"
-        ),
+        sa.UniqueConstraint("source", "machine_id", "source_session_id", name="uq_session_source"),
     )
     op.create_index("ix_sessions_last_activity", "sessions", ["last_activity_at"])
     op.create_table(

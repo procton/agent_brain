@@ -78,6 +78,4 @@ class BroadcastHub:
 
 def make_session_notification(session_view: SessionView) -> Broadcast:
     """A lightweight update carrying no event payload (state/metadata only)."""
-    return Broadcast(
-        cursor=session_view.latest_cursor, session_view=session_view, notify_session=True
-    )
+    return Broadcast(cursor=session_view.latest_cursor, session_view=session_view, notify_session=True)

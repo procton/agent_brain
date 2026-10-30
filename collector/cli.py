@@ -11,12 +11,12 @@ Subcommands (this MVP slice):
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
 from backend.app import config as app_config
 from backend.app.config import Settings
-from backend.app.schemas.source import SourceEvent
 from collector.demo_events import FIXTURE_PATH, build_events, load_fixture
 from collector.spool import Spool
 
@@ -38,8 +38,7 @@ def cmd_demo_publish(args: argparse.Namespace) -> int:
     for event in events:
         spool.publish(event.model_dump(mode="json"), event_id=event.event_id)
     print(
-        f"published {len(events)} synthetic sanitized event(s) to spool {spool.root} "
-        f"(session {session_id})"
+        f"published {len(events)} synthetic sanitized event(s) to spool {spool.root} (session {session_id})"
     )
     print("the collector will deliver them; nothing is sent to the dashboard from here.")
     return 0
@@ -78,10 +77,7 @@ def cmd_collector(args: argparse.Namespace) -> int:
                 loop.add_signal_handler(getattr(signal, sig), _stop)
             except NotImplementedError:  # pragma: no cover - non-unix
                 pass
-        print(
-            f"collector running; backend={args.backend} spool={spool.root} "
-            "(Ctrl+C for clean shutdown)"
-        )
+        print(f"collector running; backend={args.backend} spool={spool.root} (Ctrl+C for clean shutdown)")
         await daemon.run_forever()
         print(
             f"collector stopped; batches={daemon.stats['batches_delivered']} "
@@ -140,8 +136,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--backend",
-        default="http://127.0.0.1:8000",
-        help="backend base URL (default: %(default)s)",
+        default=(f"http://127.0.0.1:{os.environ.get('OBSERVATORY_PORT', '8000')}"),
+        help="backend base URL (default: http://127.0.0.1:$OBSERVATORY_PORT, else 8000)",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 

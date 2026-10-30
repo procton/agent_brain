@@ -6,14 +6,15 @@ import json
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
-import pytest
-
 from collector.spool import SpoolLimits
 from collector.tests.conftest import make_source_event
 
 
 def test_publish_is_atomic_and_readable(spool):
-    path = spool.publish(make_source_event(event_id="11111111-1111-1111-1111-111111111111"), event_id="11111111-1111-1111-1111-111111111111")
+    path = spool.publish(
+        make_source_event(event_id="11111111-1111-1111-1111-111111111111"),
+        event_id="11111111-1111-1111-1111-111111111111",
+    )
     assert path.exists()
     assert json.loads(path.read_text())["event_id"] == "11111111-1111-1111-1111-111111111111"
     # no leftover temp files in pending
@@ -86,9 +87,7 @@ def test_overflow_drops_oldest_and_notes_diagnostic(spool):
     ids = []
     for i in range(8):
         event_id = f"6666666{i:02d}-2222-2222-2222-00000000000{i}"
-        spool.publish(
-            make_source_event(index=i, tool=f"Tool{i}", event_id=event_id), event_id=event_id
-        )
+        spool.publish(make_source_event(index=i, tool=f"Tool{i}", event_id=event_id), event_id=event_id)
         ids.append(event_id)
     stats = spool.stats()
     assert stats["pending"] <= 5

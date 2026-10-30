@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from backend.tests.conftest import SimpleClient, ingest, make_source_event
 
 

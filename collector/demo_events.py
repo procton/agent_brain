@@ -47,9 +47,7 @@ def build_events(
     for repetition_index in range(repetitions):
         repeat_base = base + timedelta(milliseconds=repetition_index * 12_000)
         for fixture_event in fixture["events"]:
-            occurred = repeat_base + timedelta(
-                milliseconds=fixture_event["offset_ms"] - 1200
-            )
+            occurred = repeat_base + timedelta(milliseconds=fixture_event["offset_ms"] - 1200)
             events.append(
                 SourceEvent(
                     event_id=str(uuid.uuid4()),

@@ -5,10 +5,9 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
-from typing import Callable
+from collections.abc import Callable
 
 import httpx
-import pytest
 
 from collector.daemon import CollectorDaemon
 from collector.spool import Spool
@@ -101,16 +100,14 @@ def test_connection_error_keeps_entries_queued(spool):
 
 
 def test_partial_acceptance_only_deletes_confirmed(spool):
-    ids = publish(spool, 3)
+    publish(spool, 3)
     attempts = {"n": 0}
 
     def handler(request: httpx.Request) -> httpx.Response:
         attempts["n"] += 1
         body = json.loads(request.content.decode())
         if attempts["n"] == 1:
-            return httpx.Response(
-                200, json={"accepted": [body["events"][0]["event_id"]], "duplicates": []}
-            )
+            return httpx.Response(200, json={"accepted": [body["events"][0]["event_id"]], "duplicates": []})
         return httpx.Response(
             200, json={"accepted": [e["event_id"] for e in body["events"]], "duplicates": []}
         )
@@ -164,7 +161,7 @@ def test_invalid_schema_entry_is_quarantined(spool):
 
 
 def test_auth_failure_retries_but_keeps_data(spool):
-    ids = publish(spool, 2)
+    publish(spool, 2)
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.headers.get(AUTH_HEADER) != "Bearer secret-token":
@@ -179,7 +176,7 @@ def test_auth_failure_retries_but_keeps_data(spool):
 
 
 def test_batches_are_bounded(spool):
-    ids = publish(spool, 4)
+    publish(spool, 4)
     calls: list[httpx.Request] = []
     daemon = make_daemon(spool, default_handler(calls), batch_size=2)
     asyncio.run(daemon.run_until_idle())
@@ -191,7 +188,7 @@ def test_batches_are_bounded(spool):
 
 
 def test_batch_error_422_reports_invalid_entries(spool):
-    ids = publish(spool, 2)
+    publish(spool, 2)
 
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(422, json={"detail": "invalid batch; no events persisted"})

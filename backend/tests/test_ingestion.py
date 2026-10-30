@@ -2,11 +2,6 @@
 
 from __future__ import annotations
 
-import uuid
-
-import pytest
-from httpx import Response
-
 from backend.tests.conftest import SimpleClient, ingest, make_source_event
 
 
@@ -84,7 +79,10 @@ async def test_malformed_json_is_rejected(client: SimpleClient):
     response = await client.http.post(
         "/api/events/batch",
         content=b"this is not json",
-        headers={"Authorization": f"Bearer {client.harness.ingest_token}", "Content-Type": "application/json"},
+        headers={
+            "Authorization": f"Bearer {client.harness.ingest_token}",
+            "Content-Type": "application/json",
+        },
     )
     assert response.status_code == 422
     assert "no events persisted" in response.text
@@ -130,4 +128,8 @@ async def test_correlation_ids_only_stored_when_source_provides(client: SimpleCl
     await client.login()
     listing = (await client.http.get("/api/sessions")).json()["sessions"]
     snapshot = (await client.http.get(f"/api/sessions/{listing[0]['id']}/snapshot")).json()
-    assert snapshot["events"][0]["correlation"] == {"tool_call_id": None, "agent_id": None, "parent_agent_id": None}
+    assert snapshot["events"][0]["correlation"] == {
+        "tool_call_id": None,
+        "agent_id": None,
+        "parent_agent_id": None,
+    }
