@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# Virtual environment checked in by developer (do not treat as project code)
+# brain/
+
+# Frontend
+node_modules/
+frontend/dist/
+
+# Runtime data: never commit spool, SQLite db, credentials
+**/data/
+*.db
+*.sqlite
+*.sqlite3
+observatory_data/

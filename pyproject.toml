@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-brain-observatory"
+version = "0.1.0"
+description = "Local, metadata-first observatory for agent coding activity (MVP vertical slice)."
+requires-python = ">=3.12"
+readme = "README.md"
+license = { text = "Proprietary" }
+
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "pydantic>=2.12",
+    "SQLAlchemy[asyncio]>=2.0.43",
+    "aiosqlite>=0.21",
+    "alembic>=1.16",
+    "httpx>=0.28",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=1.0",
+    "ruff>=0.9",
+    "websockets>=15",
+]
+
+[project.scripts]
+observatory = "collector.cli:main"
+
+[tool.setuptools]
+packages = { find = { include = ["backend*", "collector*"], exclude = ["*.tests*", "*.tests"] } }
+
+[tool.ruff]
+line-length = 108
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["backend/tests", "collector/tests"]

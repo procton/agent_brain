@@ -1,0 +1,99 @@
+{
+  "comment": "EXPLICITLY SYNTHETIC fixture. Not captured telemetry. All ids, sessions and summaries are fabricated for development of the event pipeline. Contains only sanitized metadata: tool names, project-relative paths, no commands, no file contents.",
+  "schema_version": 1,
+  "source": "synthetic",
+  "machine_id": "synthetic-demo-machine",
+  "session_id": "synthetic-demo-0001",
+  "project": {
+    "label": "demo"
+  },
+  "title": "Synthetic demo session",
+  "events": [
+    {
+      "source_event": "SessionStart",
+      "kind": "session.started",
+      "offset_ms": 0,
+      "summary": {}
+    },
+    {
+      "source_event": "UserPromptSubmit",
+      "kind": "prompt.submitted",
+      "offset_ms": 1200,
+      "summary": {}
+    },
+    {
+      "source_event": "PreToolUse",
+      "kind": "tool.requested",
+      "offset_ms": 2400,
+      "correlation": { "tool_call_id": "call-0001" },
+      "summary": { "tool": "Read", "target": "README.md" }
+    },
+    {
+      "source_event": "PostToolUse",
+      "kind": "tool.completed",
+      "offset_ms": 3100,
+      "correlation": { "tool_call_id": "call-0001" },
+      "summary": { "tool": "Read", "target": "README.md" }
+    },
+    {
+      "source_event": "PreToolUse",
+      "kind": "tool.requested",
+      "offset_ms": 5200,
+      "correlation": { "tool_call_id": "call-0002" },
+      "summary": { "tool": "Edit", "target": "src/app.css" }
+    },
+    {
+      "source_event": "PostToolUse",
+      "kind": "tool.completed",
+      "offset_ms": 5900,
+      "correlation": { "tool_call_id": "call-0002" },
+      "summary": { "tool": "Edit", "target": "src/app.css" }
+    },
+    {
+      "source_event": "PreToolUse",
+      "kind": "tool.requested",
+      "offset_ms": 7100,
+      "correlation": { "tool_call_id": "call-0003" },
+      "summary": { "tool": "Bash", "target": "tests/" }
+    },
+    {
+      "source_event": "PostToolUse",
+      "kind": "tool.failed",
+      "offset_ms": 7600,
+      "correlation": { "tool_call_id": "call-0003" },
+      "summary": { "tool": "Bash", "target": "tests/" }
+    },
+    {
+      "source_event": "PreToolUse",
+      "kind": "tool.requested",
+      "offset_ms": 8300,
+      "correlation": { "tool_call_id": "call-0004" },
+      "summary": { "tool": "Bash", "target": "tests/" }
+    },
+    {
+      "source_event": "PostToolUse",
+      "kind": "tool.completed",
+      "offset_ms": 9000,
+      "correlation": { "tool_call_id": "call-0004" },
+      "summary": { "tool": "Bash", "target": "tests/" }
+    },
+    {
+      "source_event": "Notification",
+      "kind": "agent.notification",
+      "offset_ms": 9400,
+      "summary": {}
+    },
+    {
+      "source_event": "Stop",
+      "kind": "turn.completed",
+      "offset_ms": 10100,
+      "summary": {}
+    },
+    {
+      "source_event": "SessionEnd",
+      "kind": "session.ended",
+      "offset_ms": 10600,
+      "summary": {}
+    }
+  ]
+}
