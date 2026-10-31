@@ -112,12 +112,16 @@ export function makeExpertiseSnapshot(overrides: Partial<ExpertiseSnapshot> = {}
       evidence_count: 0,
     })),
     skills: [],
+    last_event_at: null,
+    stale_seconds: null,
+    stale: false,
     config: {
       half_life_seconds: 20,
       activity_window_seconds: 900,
       activate_threshold: 0.5,
       fade_threshold: 0.1,
       skill_window_seconds: 300,
+      staleness_threshold_seconds: 300,
     },
     notes:
       "Intensity is recent observed activity, not effort or proficiency. Region evidence is rule-based inference; skills are explicit, verified activations.",
@@ -336,5 +340,32 @@ describe("Expertise map in App", () => {
     await waitFor(() => {
       expect(screen.getByText(/Expertise snapshot unavailable/)).toBeInTheDocument();
     });
+  });
+
+  it("flags telemetry gaps with the honest staleness badge", async () => {
+    await openWithExpertise(
+      makeExpertiseSnapshot({
+        last_event_at: "2026-10-29T09:45:00.000Z",
+        stale_seconds: 905,
+        stale: true,
+      })
+    );
+    await waitFor(() => {
+      expect(screen.getByText("no events received for 15m")).toBeInTheDocument();
+    });
+  });
+
+  it("shows no staleness badge for fresh sessions", async () => {
+    await openWithExpertise(
+      makeExpertiseSnapshot({
+        last_event_at: "2026-10-29T10:00:04.000Z",
+        stale_seconds: 3,
+        stale: false,
+      })
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("skill-row")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/no events received/)).not.toBeInTheDocument();
   });
 });

@@ -145,6 +145,12 @@ export interface ExpertiseSnapshot {
   generated_at: string;
   regions: ExpertiseRegion[];
   skills: SkillActivation[];
+  // Honesty fields (backend clock): when the last event was seen and whether
+  // the session has gone past the staleness threshold. "stale" never claims
+  // anything about what the agent did between events.
+  last_event_at: string | null;
+  stale_seconds: number | null;
+  stale: boolean;
   config: Record<string, number>;
   notes: string;
 }

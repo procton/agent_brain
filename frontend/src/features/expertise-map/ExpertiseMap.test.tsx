@@ -232,6 +232,9 @@ describe("useExpertise", () => {
       generated_at: "2026-10-29T10:00:05.000Z",
       regions: REGION_KEYS.map((key) => makeRegion(key)),
       skills: [],
+      last_event_at: null,
+      stale_seconds: null,
+      stale: false,
       config: {},
       notes: "Intensity is recent observed activity, not effort.",
     };

@@ -27,7 +27,11 @@ from sqlalchemy import select
 from backend.app.database.models import Event
 from backend.app.database.models import Session as SessionRow
 from backend.app.schemas.normalized import SessionView
-from backend.app.security import cookie_from_scope
+from backend.app.security import (
+    cookie_from_scope,
+    origin_allowed,
+    server_port_from_scope,
+)
 from backend.app.services.hub import Broadcast, Subscription
 from backend.app.services.views import to_normalized_event, to_session_view
 
@@ -42,9 +46,11 @@ async def session_live(websocket: WebSocket, session_id: str) -> None:
     browser_sessions = websocket.app.state.browser_sessions
 
     # Authentication happens before sending anything meaningful so browsers
-    # get a clean refusal. WS requires an explicit allowlisted Origin header.
+    # get a clean refusal. WS requires an explicit allowlisted Origin header;
+    # the allowlist includes the origin of the real serving port.
     origin = websocket.headers.get("origin")
-    if not origin or origin not in settings.allowed_origins:
+    real_port = server_port_from_scope(websocket.scope)
+    if not origin or not origin_allowed(origin, settings, require_for_write=True, server_port=real_port):
         await _accept_then_fail(websocket, "origin not allowed")
         return
     token = cookie_from_scope(websocket.scope)

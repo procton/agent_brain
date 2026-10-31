@@ -113,6 +113,12 @@ export default function App() {
   const selectedRegion =
     expertiseRegions.find((region) => region.key === selectedRegionKey) ?? null;
 
+  // §10 staleness: the backend stamps when it last received an event. Text +
+  // timestamps, never a color-only or fabricated "agent stopped" claim.
+  const staleness = expertise.snapshot?.stale ? expertise.snapshot.stale_seconds : null;
+  const stalenessText =
+    staleness === null ? null : staleness < 90 ? `${staleness}s` : `${Math.round(staleness / 60)}m`;
+
   return (
     <main className="app-shell">
       <SessionBar
@@ -136,6 +142,14 @@ export default function App() {
               ) : null}
               {selected.machine_id ? (
                 <span className="badge">machine: {selected.machine_id}</span>
+              ) : null}
+              {stalenessText ? (
+                <span
+                  className="badge badge-stale"
+                  title="No event has been received for longer than the staleness threshold. This dashboard never invents what the agent did in between."
+                >
+                  no events received for {stalenessText}
+                </span>
               ) : null}
             </h1>
           ) : null}

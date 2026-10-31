@@ -78,13 +78,13 @@ cd ~/Documents/agent_brain
 ./brain/bin/pip install -e .                      # first run only
 ./brain/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 # -> backend serves /api on 127.0.0.1:8000 (loopback only)
-# -> prints the dashboard access code location:
-#    e.g. ~/.local/share/agent-brain-observatory/dashboard_code  (mode 0600)
+# -> the dashboard access code is PRINTED here at startup
+#    (also in ~/.local/share/agent-brain-observatory/dashboard_code, mode 0600)
 
 # terminal 2 — collector
 cd ~/Documents/agent_brain
 ./brain/bin/observatory collector
-# watches the spool and delivers events to http://127.0.0.1:8000
+# watches the spool and delivers events to http://127.0.0.1:8000 (default --backend)
 
 # terminal 3 — publish the synthetic demo events (no agent install needed)
 cd ~/Documents/agent_brain
@@ -94,7 +94,8 @@ cd ~/Documents/agent_brain
 ./brain/bin/observatory collector --once
 ```
 
-Browser session (one-time per browser):
+Browser session (one-time per browser): the code is printed by terminal 1 at
+startup; `observatory doctor` shows the file path as well.
 
 ```bash
 ./brain/bin/observatory doctor    # shows the dashboard access code location
@@ -110,9 +111,14 @@ npm run dev                       # http://127.0.0.1:5173
 ```
 
 Open <http://127.0.0.1:5173>, choose the session
-`Synthetic demo session`, enter the access code once — the HttpOnly cookie is
-set and the timeline starts streaming live. Events arrive in < 1 s on a
-virtualized localhost when the collector polls on its default interval.
+`Synthetic demo session`, enter the code printed by the backend at startup
+(or the one-time pasted file value) — the HttpOnly cookie is set and the
+timeline starts streaming live. Measured delivery (2026-10-31, demo path,
+events persisted/broadcast-ready after spool publication): **median 642 ms,
+p95 702 ms** with the default 0.5 s collector poll (n=26); with a warm
+0.05 s poll the same path measured **median 131 ms, p95 203 ms**. The poll
+interval dominates by design; the ingest→persist→broadcast step itself is
+sub-10 ms on the same measurements.
 
 > **The demo never touches the UI directly:** `demo-publish` only writes
 > sanitized events into the spool; the real collector daemon delivers them to
@@ -142,9 +148,11 @@ read-only (`GET /api/event` only).
 
 ```bash
 # terminal 1 — backend, in production mode so it also serves the built UI
-OBSERVATORY_ENV=production ./brain/bin/uvicorn backend.app.main:app \
+OBSERVATORY_ENV=production OBSERVATORY_PORT=8041 ./brain/bin/uvicorn backend.app.main:app \
   --host 127.0.0.1 --port 8041 --log-level warning
 # -> open http://127.0.0.1:8041 (backend serves the dashboard itself)
+# -> the dashboard access code is PRINTED here at startup
+#    (rotating: stop backend, delete dashboard_code file, restart)
 
 # terminal 2 — collector (spool → backend, same data dir)
 OBSERVATORY_DATA_DIR=~/.local/share/agent-brain-observatory \
@@ -250,11 +258,18 @@ cd frontend && npm install
 |---|---|---|
 | `OBSERVATORY_DATA_DIR` | platform data dir (`~/.local/share/agent-brain-observatory`) | DB, credentials, spool, dashboard code |
 | `OBSERVATORY_SPOOL_DIR` | `$OBSERVATORY_DATA_DIR/spool` | spool root |
-| `OBSERVATORY_HOST` / `OBSERVATORY_PORT` | `127.0.0.1` / `8000` | bind address **and the port used to derive allowed browser origins — keep it matching `uvicorn --port`** |
+| `OBSERVATORY_HOST` / `OBSERVATORY_PORT` | `127.0.0.1` / `8000` | bind address; the port participates in the allowed browser origins — `uvicorn --port N` is always self-allowed automatically, keep `OBSERVATORY_PORT` in sync for clarity |
 | `OBSERVATORY_ENV` | `development` | `production` also serves `frontend/dist` |
 | `OBSERVATORY_DEV_ORIGINS` | `http://localhost:5173 …` | explicit dev-only origin allowlist extras |
 | `OBSERVATORY_OPENCODE_SERVER` | auto (via `opencode service status`) | listener override: the service base URL |
 | `OBSERVATORY_OPENCODE_PASSWORD` | auto (`~/.config/opencode/service.json`) | listener override: the service password (stays in memory only) |
+| `OBSERVATORY_EXPERTISE_HALF_LIFE_SECONDS` | `20` | expertise decay half-life (intensity halves this often) |
+| `OBSERVATORY_EXPERTISE_ACTIVITY_WINDOW_SECONDS` | `900` | evidence inside this window only |
+| `OBSERVATORY_EXPERTISE_ACTIVATE_THRESHOLD` / `_FADE_THRESHOLD` | `0.5` / `0.1` | region state thresholds (active / fading→idle) |
+| `OBSERVATORY_EXPERTISE_EVIDENCE_PER_REGION` | `5` | evidence rows per region in the snapshot |
+| `OBSERVATORY_EXPERTISE_SKILL_WINDOW_SECONDS` | `300` | verified-skill chip lifetime ("recent" vs "stale") |
+| `OBSERVATORY_EXPERTISE_DEBUGGING_MIN_FAILURES` / `_WINDOW_SECONDS` | `2` / `600` | repeated-failure debugging rule |
+| `OBSERVATORY_STALENESS_THRESHOLD_SECONDS` | `300` | "no events received for …" badge after this gap |
 
 ### Tests / checks
 
@@ -277,9 +292,11 @@ cd frontend && npm run lint && npm run build
 
 ```bash
 cd frontend && npm run build      # emits frontend/dist
-# OBSERVATORY_PORT must match --port (it derives the allowed dashboard origins)
+# the bound uvicorn port is self-allowed automatically; set OBSERVATORY_PORT too
+# for anything else that must reach the API from the browser
 OBSERVATORY_ENV=production ./brain/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 # SPA is served from the same origin; cookie and origins are same-host now
+# the dashboard access code is printed on startup (also 0600 file in the data dir)
 ```
 
 ---

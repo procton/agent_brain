@@ -42,11 +42,32 @@ class ExpertiseConfig:
     skill_window_seconds: int = 5 * 60  # explicit skill visibility lifetime
     debugging_min_failures: int = 2  # repeated-failure rule threshold
     debugging_failure_window_seconds: int = 10 * 60
+    staleness_threshold_seconds: int = 5 * 60  # "no events received" marker
 
     @classmethod
     def from_settings(cls, settings) -> ExpertiseConfig:
-        decay = getattr(settings, "expertise_decay_half_life_seconds", None)
-        return cls(half_life_seconds=int(decay) if decay else cls.half_life_seconds)
+        def value(name: str, fallback):
+            return getattr(settings, name, fallback)
+
+        return cls(
+            half_life_seconds=int(value("expertise_decay_half_life_seconds", cls.half_life_seconds)),
+            activity_window_seconds=int(
+                value("expertise_activity_window_seconds", cls.activity_window_seconds)
+            ),
+            activate_threshold=float(value("expertise_activate_threshold", cls.activate_threshold)),
+            fade_threshold=float(value("expertise_fade_threshold", cls.fade_threshold)),
+            evidence_per_region=int(value("expertise_evidence_per_region", cls.evidence_per_region)),
+            skill_window_seconds=int(value("expertise_skill_window_seconds", cls.skill_window_seconds)),
+            debugging_min_failures=int(
+                value("expertise_debugging_min_failures", cls.debugging_min_failures)
+            ),
+            debugging_failure_window_seconds=int(
+                value("expertise_debugging_failure_window_seconds", cls.debugging_failure_window_seconds)
+            ),
+            staleness_threshold_seconds=int(
+                value("staleness_threshold_seconds", cls.staleness_threshold_seconds)
+            ),
+        )
 
 
 def region_state(intensity: float, config: ExpertiseConfig) -> str:
@@ -95,8 +116,9 @@ def build_snapshot(
     now_ts = now.timestamp()
     regions_intensity: dict[str, list[tuple[float, str]]] = {region: [] for region in REGIONS}
     evidence: dict[str, list[dict]] = {region: [] for region in REGIONS}
-    failures: list[tuple[float, str]] = []  # (ts, tool category/target token)
+    failures: list[tuple[float, str, str, str]] = []  # (ts, stamp, event_id, token)
     skills: dict[str, dict] = {}
+    last_seen: tuple[float, str | None] = (float("-inf"), None)  # (max ts, its stamp)
 
     # Stable order for tie-breaking by cursor.
     ordered = sorted(events, key=lambda e: e.get("cursor") or 0)
@@ -105,6 +127,9 @@ def build_snapshot(
             ts = _as_float(event)
         except ValueError:
             continue  # timestamp-less events cannot add recent activity
+        stamp = event.get("occurred_at") or event.get("received_at")
+        if ts > last_seen[0]:
+            last_seen = (ts, stamp)
         age = now_ts - ts
         if age > config.activity_window_seconds:
             continue
@@ -213,21 +238,35 @@ def build_snapshot(
         reverse=True,
     )
 
+    # Staleness: measured from the LAST event of any age (view-level, honest:
+    # this says "no events received lately", never "agent stopped thinking").
+    last_event_at: str | None = None
+    stale_seconds: int | None = None
+    if last_seen[0] != float("-inf"):
+        last_event_at = last_seen[1]
+        stale_seconds = max(0, int(now_ts - last_seen[0]))
+    stale = stale_seconds is not None and stale_seconds > config.staleness_threshold_seconds
+
     return {
         "schema_version": 1,
         "regions": region_rows,
         "skills": skill_rows,
+        "last_event_at": last_event_at,
+        "stale_seconds": stale_seconds,
+        "stale": stale,
         "config": {
             "half_life_seconds": config.half_life_seconds,
             "activity_window_seconds": config.activity_window_seconds,
             "activate_threshold": config.activate_threshold,
             "fade_threshold": config.fade_threshold,
             "skill_window_seconds": config.skill_window_seconds,
+            "staleness_threshold_seconds": config.staleness_threshold_seconds,
         },
         "notes": (
             "Intensity is recent observed activity, not effort or proficiency. "
             "Region evidence is rule-based inference; skills are explicit, "
             "verified activations and fade after the visible window (the source "
-            "provides no explicit deactivation signal)."
+            "provides no explicit deactivation signal). `stale` simply means the "
+            "last event is older than the staleness threshold."
         ),
     }

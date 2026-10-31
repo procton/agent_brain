@@ -90,3 +90,31 @@ async def test_expertise_snapshot_sums_evidence_from_events(client):
     config = snap["config"]
     assert config["half_life_seconds"] > 0
     assert config["activate_threshold"] > config["fade_threshold"]
+
+
+async def test_expertise_snapshot_marks_stale_sessions_honestly(client):
+    """§10 staleness: the snapshot says when the last event was seen, on the
+    backend clock, and never claims agent activity between events."""
+    login = await client.login()
+    assert login.status_code == 200
+
+    from datetime import UTC, datetime, timedelta
+
+    now = datetime.now(UTC)
+    old_ts = (now - timedelta(minutes=30)).isoformat(timespec="milliseconds")
+    stale_event = make_source_event(kind="tool.requested", index=0, occurred_at=old_ts)
+    await ingest(client, [stale_event])
+
+    session_id = (await client.http.get("/api/sessions")).json()["sessions"][0]["id"]
+    snap = (await client.http.get(f"/api/sessions/{session_id}/expertise")).json()
+
+    assert snap["last_event_at"] == old_ts
+    assert snap["stale_seconds"] is not None and snap["stale_seconds"] >= 25 * 60
+    assert snap["stale"] is True
+
+    # A fresh event flips the marker off; staleness follows the newest event.
+    fresh_ts = (now - timedelta(seconds=5)).isoformat(timespec="milliseconds")
+    await ingest(client, [make_source_event(kind="prompt.submitted", index=1, occurred_at=fresh_ts)])
+    snap2 = (await client.http.get(f"/api/sessions/{session_id}/expertise")).json()
+    assert snap2["last_event_at"] == fresh_ts
+    assert snap2["stale"] is False

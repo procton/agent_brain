@@ -24,6 +24,16 @@ def _default_data_dir() -> Path:
     return base / "agent-brain-observatory"
 
 
+def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    return int(raw) if raw else default
+
+
+def _env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    return float(raw) if raw else default
+
+
 @dataclass(frozen=True)
 class Settings:
     """Process-wide settings, resolved once at startup."""
@@ -40,8 +50,34 @@ class Settings:
     # Browser dashboard session lifetime, in seconds.
     dashboard_session_ttl_seconds: int = 12 * 3600
 
-    # Expertise-map decay: intensity halves this often while fading.
-    expertise_decay_half_life_seconds: int = 20
+    # Expertise-map tuning (env overridable; see README env table).
+    expertise_decay_half_life_seconds: int = field(
+        default_factory=lambda: _env_int("OBSERVATORY_EXPERTISE_HALF_LIFE_SECONDS", 20)
+    )
+    expertise_activity_window_seconds: int = field(
+        default_factory=lambda: _env_int("OBSERVATORY_EXPERTISE_ACTIVITY_WINDOW_SECONDS", 15 * 60)
+    )
+    expertise_activate_threshold: float = field(
+        default_factory=lambda: _env_float("OBSERVATORY_EXPERTISE_ACTIVATE_THRESHOLD", 0.5)
+    )
+    expertise_fade_threshold: float = field(
+        default_factory=lambda: _env_float("OBSERVATORY_EXPERTISE_FADE_THRESHOLD", 0.1)
+    )
+    expertise_evidence_per_region: int = field(
+        default_factory=lambda: _env_int("OBSERVATORY_EXPERTISE_EVIDENCE_PER_REGION", 5)
+    )
+    expertise_skill_window_seconds: int = field(
+        default_factory=lambda: _env_int("OBSERVATORY_EXPERTISE_SKILL_WINDOW_SECONDS", 5 * 60)
+    )
+    expertise_debugging_min_failures: int = field(
+        default_factory=lambda: _env_int("OBSERVATORY_EXPERTISE_DEBUGGING_MIN_FAILURES", 2)
+    )
+    expertise_debugging_failure_window_seconds: int = field(
+        default_factory=lambda: _env_int("OBSERVATORY_EXPERTISE_DEBUGGING_WINDOW_SECONDS", 10 * 60)
+    )
+    staleness_threshold_seconds: int = field(
+        default_factory=lambda: _env_int("OBSERVATORY_STALENESS_THRESHOLD_SECONDS", 5 * 60)
+    )
 
     @property
     def production(self) -> bool:

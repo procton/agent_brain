@@ -55,5 +55,11 @@ class ExpertiseSnapshot(BaseModel):
     generated_at: str
     regions: list[RegionRow]
     skills: list[SkillRow]
+    # Honesty fields: the last event seen (any age) and how stale it is on the
+    # backend clock. `stale` says "no events received lately"; it never claims
+    # anything about agent activity between events.
+    last_event_at: str | None = None
+    stale_seconds: int | None = None
+    stale: bool = False
     config: dict[str, float | int]
     notes: str

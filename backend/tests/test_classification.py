@@ -208,3 +208,32 @@ def test_region_evidence_rows_carry_full_explanation():
     assert row["rule_id"] == "command-container-cli"
     assert row["confidence"] == "high"
     assert row["cursor"] == 1
+
+
+def test_expertise_config_follows_env_overrides(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    from backend.app.config import Settings
+
+    monkeypatch.setenv("OBSERVATORY_EXPERTISE_HALF_LIFE_SECONDS", "7")
+    monkeypatch.setenv("OBSERVATORY_EXPERTISE_ACTIVITY_WINDOW_SECONDS", "123")
+    monkeypatch.setenv("OBSERVATORY_EXPERTISE_ACTIVATE_THRESHOLD", "0.7")
+    monkeypatch.setenv("OBSERVATORY_EXPERTISE_FADE_THRESHOLD", "0.2")
+    monkeypatch.setenv("OBSERVATORY_EXPERTISE_EVIDENCE_PER_REGION", "9")
+    monkeypatch.setenv("OBSERVATORY_EXPERTISE_SKILL_WINDOW_SECONDS", "60")
+    monkeypatch.setenv("OBSERVATORY_EXPERTISE_DEBUGGING_MIN_FAILURES", "4")
+    monkeypatch.setenv("OBSERVATORY_EXPERTISE_DEBUGGING_WINDOW_SECONDS", "55")
+    monkeypatch.setenv("OBSERVATORY_STALENESS_THRESHOLD_SECONDS", "11")
+
+    settings = Settings(data_dir=Path(tmp_path) / "data")
+    config = ExpertiseConfig.from_settings(settings)
+
+    assert config.half_life_seconds == 7
+    assert config.activity_window_seconds == 123
+    assert config.activate_threshold == 0.7
+    assert config.fade_threshold == 0.2
+    assert config.evidence_per_region == 9
+    assert config.skill_window_seconds == 60
+    assert config.debugging_min_failures == 4
+    assert config.debugging_failure_window_seconds == 55
+    assert config.staleness_threshold_seconds == 11

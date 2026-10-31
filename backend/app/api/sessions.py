@@ -38,9 +38,13 @@ async def create_browser_session(request: Request, response: Response) -> dict:
     except Exception:
         body = {}
     code = body.get("code") if isinstance(body, dict) else None
+    throttle = request.app.state.auth_throttle
+    throttle.check()  # closed guard refuses even correct codes until it lapses
     code_ok = isinstance(code, str) and hmac.compare_digest(code, request.app.state.dashboard_code)
     if not code_ok:
+        throttle.record_failure()
         raise HTTPException(status_code=403, detail="invalid access code")
+    throttle.reset()
     sessions: BrowserSessions = request.app.state.browser_sessions
     sessions.issue(response)
     return {"authenticated": True, "expires_in": settings.dashboard_session_ttl_seconds}

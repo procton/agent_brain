@@ -37,7 +37,7 @@ from backend.app.config import (
 )
 from backend.app.database.engine import SessionFactory, build_async_engine
 from backend.app.database.migrations import run_migrations
-from backend.app.security import BrowserSessions
+from backend.app.security import AuthThrottle, BrowserSessions
 from backend.app.services.hub import BroadcastHub
 from backend.app.services.ingest import IngestionService
 
@@ -58,6 +58,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        _print_startup_banner(settings)
         yield
         await engine.dispose()
         hub.close_all()
@@ -71,6 +72,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.ingest_token = app_config.secret_from_file(settings.credential_path)
     app.state.dashboard_code = app_config.secret_from_file(settings.dashboard_code_path)
     app.state.browser_sessions = BrowserSessions(settings)
+    app.state.auth_throttle = AuthThrottle()
 
     app.include_router(health_api.router, prefix="/api")
     app.include_router(events_api.router, prefix="/api")
@@ -89,6 +91,28 @@ def prepare_data_directory(settings: Settings) -> None:
     create_credential_file(settings.credential_path)
     create_dashboard_code_file(settings.dashboard_code_path)
     logger.info("observatory data directory: %s", settings.data_dir)
+
+
+def _print_startup_banner(settings: Settings) -> None:
+    """Print the access code in the running backend's own terminal.
+
+    The code never appears in the browser, the API responses, or the collector
+    path; it lives in the 0600 file too. Printing it here answers the most
+    common local friction ("where do I get the code?") without weakening the
+    boundary: the terminal is the same machine the user administers.
+    """
+    try:
+        code = app_config.secret_from_file(settings.dashboard_code_path)
+    except (FileNotFoundError, ValueError):  # pragma: no cover - prepare() ran first
+        return
+    print("", flush=True)
+    print("dashboard access code:", code, flush=True)
+    print(
+        f"  (code file: {settings.dashboard_code_path}; rotate: stop the backend, "
+        "delete the file, restart)",
+        flush=True,
+    )
+    print("", flush=True)
 
 
 def _mount_frontend(app: FastAPI, dist_dir: Path) -> None:
