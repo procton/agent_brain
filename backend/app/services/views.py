@@ -47,4 +47,5 @@ def to_normalized_event(row: Event) -> NormalizedEvent:
         received_at=row.received_at,
         correlation=dict(row.correlation or {}),
         summary=dict(row.summary or {}),
+        expertise=list(row.expertise) if row.expertise is not None else None,
     )

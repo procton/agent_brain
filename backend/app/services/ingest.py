@@ -17,6 +17,7 @@ import uuid
 
 from sqlalchemy import select
 
+from backend.app.classification.rules import classify_event
 from backend.app.config import Settings
 from backend.app.database.engine import SessionFactory
 from backend.app.database.models import Event, Machine, utc_now_iso
@@ -132,6 +133,11 @@ class IngestionService:
         return row
 
     async def _persist_event(self, db, source_event: SourceEvent, session_row_id: str) -> Event:
+        labels = classify_event(
+            source_event.kind,
+            source_event.summary,
+            evidence_event_id=source_event.event_id,
+        )
         row = Event(
             event_id=str(source_event.event_id),
             session_id=session_row_id,
@@ -143,6 +149,7 @@ class IngestionService:
             received_at=utc_now_iso(),
             correlation=source_event.correlation.model_dump(),
             summary=source_event.summary,
+            expertise=labels or None,
         )
         db.add(row)
         await db.flush()  # assigns the cursor

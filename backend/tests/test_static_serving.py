@@ -10,7 +10,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import httpx
-import pytest
 from fastapi import FastAPI
 
 from backend.app.config import Settings

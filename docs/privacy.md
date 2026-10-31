@@ -21,6 +21,26 @@ extraction, not pattern redaction):
 - unrestricted shell command text
 - environment variables, credentials, usernames, home-directory paths
   (project-relative paths are truncated at 200 chars)
+- (OpenCode source) session titles (free text, may embed prompt content),
+  text/reasoning/tool-input deltas, tool outputs, and token-usage counters
+
+## OpenCode capture specifics
+
+The OpenCode listener (`collector/opencode_listener.py`) subscribes read-only
+to the local background service SSE stream and applies the same allowlist
+discipline upstream of the spool (`docs/opencode-integration.md` has the full
+verified mapping):
+
+- exactly 16 wire event types are forwarded; everything else — including all
+  deltas and usage events — is dropped before any file is written;
+- `~/.config/opencode/service.json` is read only to obtain the loopback
+  service password, which stays in process memory (never printed, logged, or
+  persisted);
+- targets and paths are made **project-relative using the directory OpenCode
+  itself reports** (`location.directory`); absolute paths outside the project
+  collapse to their basename;
+- tool failures are reported as such — a failed *shell command* is metadata
+  (a coarse category or nothing); the original text never survives.
 
 Absent/unknown payload fields are dropped, never guessed. The demo publisher
 is explicitly synthetic: `fixtures/synthetic/demo_session.json` contains no
@@ -35,6 +55,7 @@ captured data whatsoever.
 | Dashboard access code | …/dashboard_code | 0600 |
 | Spool (pending/quarantine) | …/spool (or `OBSERVATORY_SPOOL_DIR`) | user |
 | Diagnostics log | …/spool/diagnostics.log | user |
+| (OpenCode listener) | reads `~/.config/opencode/service.json` only, in memory | no writes |
 
 Runtime data is never written inside the repository. Deleting the data
 directory (backend stopped) deletes all captured state:

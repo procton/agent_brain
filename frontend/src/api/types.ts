@@ -10,11 +10,13 @@ export interface Correlation {
 export type EventKind =
   | "session.started"
   | "prompt.submitted"
+  | "turn.started"
   | "tool.requested"
   | "tool.completed"
   | "tool.failed"
   | "subagent.started"
   | "subagent.completed"
+  | "skill.activated"
   | "agent.notification"
   | "turn.completed"
   | "session.ended";
@@ -76,11 +78,13 @@ export type WsServerMessage =
 export const KIND_LABELS: Record<string, string> = {
   "session.started": "Session started",
   "prompt.submitted": "Prompt submitted",
+  "turn.started": "Turn started",
   "tool.requested": "Tool requested",
   "tool.completed": "Tool completed",
   "tool.failed": "Tool failed",
   "subagent.started": "Subagent started",
   "subagent.completed": "Subagent completed",
+  "skill.activated": "Skill activated",
   "agent.notification": "Notification",
   "turn.completed": "Turn finished",
   "session.ended": "Session ended",
@@ -92,3 +96,55 @@ export const STATE_LABELS: Record<string, string> = {
   turn_finished: "turn finished",
   ended: "ended",
 };
+
+// ---------------------------------------------------------------------------
+// Expertise/skills snapshot (GET /api/sessions/{id}/expertise)
+// Mirrors backend/app/schemas/expertise.py. Region intensity is recent
+// observed activity with decay — never effort, proficiency, or usage.
+// ---------------------------------------------------------------------------
+
+export type RegionState = "active" | "fading" | "idle" | "inactive";
+
+export type LabelBasis = "observed" | "inferred";
+
+export interface ExpertiseEvidence {
+  event_id: string | null;
+  cursor: number | null;
+  kind: string | null;
+  ts: string | null;
+  tool: string | null;
+  target: string | null;
+  command: string | null;
+  basis: LabelBasis | string;
+  rule_id: string;
+  confidence: string;
+}
+
+export interface ExpertiseRegion {
+  key: string;
+  label: string;
+  state: RegionState;
+  intensity: number;
+  evidence: ExpertiseEvidence[];
+  evidence_count: number;
+}
+
+export interface SkillActivation {
+  name: string;
+  first_activated_at: string | null;
+  last_activated_at: string | null;
+  activation_count: number;
+  evidence_event_ids: string[];
+  recent: boolean;
+}
+
+export interface ExpertiseSnapshot {
+  schema_version: number;
+  session_id: string;
+  source: string;
+  generated_at: string;
+  regions: ExpertiseRegion[];
+  skills: SkillActivation[];
+  config: Record<string, number>;
+  notes: string;
+}

@@ -72,6 +72,9 @@ class Event(Base):
     received_at: Mapped[str] = mapped_column(String(40))
     correlation: Mapped[dict] = mapped_column(JSON, default=dict)
     summary: Mapped[dict] = mapped_column(JSON, default=dict)
+    # Deterministic expertise labels computed at ingest time:
+    # [{label, basis, rule_id, confidence, evidence_event_id}] (see classification/).
+    expertise: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
 
 SCHEMA_VERSION_TABLE = "__schema_metadata__"

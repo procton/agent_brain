@@ -4,7 +4,7 @@ import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
-import type { NormalizedEvent, SessionView } from "../api/types";
+import type { ExpertiseSnapshot, NormalizedEvent, SessionView } from "../api/types";
 import {
   MockWebSocket,
   lastSocket,
@@ -89,6 +89,42 @@ function jsonResponse(payload: unknown, status = 200): Response {
   });
 }
 
+export function makeExpertiseSnapshot(overrides: Partial<ExpertiseSnapshot> = {}): ExpertiseSnapshot {
+  return {
+    schema_version: 1,
+    session_id: "sess-1",
+    source: "synthetic",
+    generated_at: "2026-10-29T10:00:05.000Z",
+    regions: [
+      "code_exploration",
+      "frontend",
+      "backend",
+      "testing",
+      "database",
+      "infrastructure",
+      "debugging",
+    ].map((key) => ({
+      key,
+      label: key.replace(/_/g, " "),
+      state: "inactive",
+      intensity: 0,
+      evidence: [],
+      evidence_count: 0,
+    })),
+    skills: [],
+    config: {
+      half_life_seconds: 20,
+      activity_window_seconds: 900,
+      activate_threshold: 0.5,
+      fade_threshold: 0.1,
+      skill_window_seconds: 300,
+    },
+    notes:
+      "Intensity is recent observed activity, not effort or proficiency. Region evidence is rule-based inference; skills are explicit, verified activations.",
+    ...overrides,
+  };
+}
+
 const standardSessionRoutes = () =>
   installFetch((call) => {
     if (call.path === "/api/sessions") {
@@ -102,6 +138,9 @@ const standardSessionRoutes = () =>
         first_loaded_cursor: 1,
         has_older_events: false,
       });
+    }
+    if (call.path === "/api/sessions/sess-1/expertise") {
+      return jsonResponse(makeExpertiseSnapshot());
     }
     return undefined;
   });
@@ -213,5 +252,89 @@ describe("App states", () => {
     });
     await user.type(screen.getByLabelText("Access code"), "abcd1234");
     expect(screen.getByRole("button", { name: "Unlock dashboard" })).toBeEnabled();
+  });
+});
+
+describe("Expertise map in App", () => {
+  async function openWithExpertise(
+    snapshot: ExpertiseSnapshot,
+    routes?: (call: FetchCall) => Response | undefined
+  ) {
+    const user = userEvent.setup();
+    installFetch((call) => {
+      // overrides first (failure-path tests replace the standard answers)
+      const overridden = routes?.(call);
+      if (overridden) return overridden;
+      if (call.path === "/api/sessions") {
+        return jsonResponse({ sessions: [makeSession()], generated_at: "" });
+      }
+      if (call.path === "/api/sessions/sess-1/snapshot") {
+        return jsonResponse({
+          session: makeSession(),
+          events: [makeEvent(1)],
+          latest_cursor: 1,
+          first_loaded_cursor: 1,
+          has_older_events: false,
+        });
+      }
+      if (call.path === "/api/sessions/sess-1/expertise") {
+        return jsonResponse(snapshot);
+      }
+      return undefined;
+    });
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByTestId("skill-row")).toBeInTheDocument();
+    });
+    return user;
+  }
+
+  it("renders polled regions, verified skill chips, and per-region evidence", async () => {
+    const user = await openWithExpertise(
+      makeExpertiseSnapshot({
+        skills: [
+          {
+            name: "verified-skill",
+            first_activated_at: null,
+            last_activated_at: null,
+            activation_count: 1,
+            evidence_event_ids: ["e1"],
+            recent: true,
+          },
+        ],
+      })
+    );
+
+    // Verified skill chip visible once the polled snapshot lands.
+    await waitFor(() => {
+      expect(screen.getByText("verified-skill")).toBeInTheDocument();
+    });
+
+    // No region is selected: the evidence panel shows the pointer hint.
+    expect(screen.getByTestId("evidence-panel")).toHaveTextContent(
+      "Select a region in the map"
+    );
+
+    await user.click(screen.getByRole("button", { name: /backend: inactive/ }));
+    await waitFor(() => {
+      expect(screen.getByTestId("evidence-panel")).toHaveTextContent(
+        "No evidence rows inside the current activity window"
+      );
+    });
+  });
+
+  it("reports expertise polling failures inline while keeping the last map", async () => {
+    await openWithExpertise(
+      makeExpertiseSnapshot(),
+      (call) => {
+        if (call.path === "/api/sessions/sess-1/expertise") {
+          return new Response("boom", { status: 503 });
+        }
+        return undefined;
+      }
+    );
+    await waitFor(() => {
+      expect(screen.getByText(/Expertise snapshot unavailable/)).toBeInTheDocument();
+    });
   });
 });

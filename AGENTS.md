@@ -27,6 +27,9 @@ The MVP is a passive companion. It must not launch, control, approve actions for
 ### In scope
 
 - Claude Code integration through lifecycle hooks.
+- OpenCode integration through a passive external listener on the background
+  service event stream (user-approved scope extension, 2026-10-30; see
+  `docs/opencode-integration.md`).
 - A lightweight Python hook receiver.
 - A durable local event spool.
 - A Python collector that forwards events to FastAPI.
@@ -34,6 +37,8 @@ The MVP is a passive companion. It must not launch, control, approve actions for
 - React frontend with a brain-inspired SVG expertise map.
 - Session selection and live activity timeline.
 - Evidence panels explaining expertise classifications.
+- Explicit, verified skill-activation display (only when the source truly
+  emits an activation event; OpenCode `session.skill.activated` verified).
 - WebSocket updates and reconnect recovery.
 - Metadata-first collection and local sanitization.
 - Safe hook installation and removal.
@@ -41,7 +46,8 @@ The MVP is a passive companion. It must not launch, control, approve actions for
 
 ### Out of scope
 
-- Codex and OpenCode integrations.
+- Codex integrations.
+- OpenCode plugins or any in-tree (non-listener) OpenCode modification.
 - Remote/cloud deployment and multi-user accounts.
 - Agent control, command execution, or approval handling.
 - Access to hidden chain-of-thought or model internals.

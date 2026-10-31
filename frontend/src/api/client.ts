@@ -4,6 +4,7 @@
 
 import type {
   EventsPage,
+  ExpertiseSnapshot,
   SessionView,
   SnapshotResponse,
 } from "./types";
@@ -66,6 +67,12 @@ export function fetchEventsPage(
 ): Promise<EventsPage> {
   return requestJson<EventsPage>(
     `/sessions/${encodeURIComponent(sessionId)}/events?after=${after}&limit=${limit}`
+  );
+}
+
+export function fetchExpertise(sessionId: string): Promise<ExpertiseSnapshot> {
+  return requestJson<ExpertiseSnapshot>(
+    `/sessions/${encodeURIComponent(sessionId)}/expertise`
   );
 }
 

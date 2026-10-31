@@ -34,6 +34,10 @@ class NormalizedEvent(BaseModel):
     received_at: str
     correlation: dict[str, str | None] = Field(default_factory=dict)
     summary: dict[str, str] = Field(default_factory=dict)
+    # Deterministic expertise labels computed at ingest (see classification/):
+    # [{label, basis, rule_id, confidence, evidence_event_id}]. None for legacy
+    # rows; the schemas stay additive (still schema_version 1).
+    expertise: list[dict] | None = None
 
 
 class SessionView(BaseModel):

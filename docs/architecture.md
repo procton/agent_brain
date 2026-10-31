@@ -5,6 +5,15 @@ AGENT.md §4 and deviates from it exactly where noted.
 
 ```
 ┌───────────────────────────────────────────────────────────────────────┐
+│ OpenCode listener (observatory opencode-listen) — passive, read-only   │
+│  · subscribes to GET /api/event (SSE) of the local background service  │
+│  · strict 16-event allowlist (docs/opencode-integration.md)            │
+│  · metadata-only summaries; deltas/usage/titles never leave the wire   │
+│  · publish errors are counted, never fatal; reconnect w/ backoff        │
+└──────────────┬────────────────────────────────────────────────────────┘
+               │ sanitized json file per event (same Spool API)
+               ▼
+┌───────────────────────────────────────────────────────────────────────┐
 │ demo publisher (observatory demo-publish)                             │
 │  · loads fixtures/synthetic/demo_session.json                         │
 │  · fresh UUIDs per publish, same synthetic session id                 │
@@ -22,11 +31,14 @@ AGENT.md §4 and deviates from it exactly where noted.
 │ FastAPI backend (backend/app) — single process                        │
 │  POST /api/events/batch   auth + size limits + schema v1 validation   │
 │  services/ingest.py       dedupe(event_id) → upsert → persist →       │
+│  classification/rules.py  per-event expertise labels at ingest        │
+│                           get_events.expertise (JSON, schema v1)      │
 │                           broadcast (one lock spans cursor order)     │
 │  database (SQLite WAL + Alembic)                                      │
 │    machines · sessions · events(cursor PK, unique event_id, idx       │
 │    (session_id, cursor)) · __schema_metadata__                        │
 │  api/sessions.py          list / snapshot(≤200) / events(after, limit)│
+│  api/expertise.py         GET /sessions/{id}/expertise (decay on read)│
 │  api/ws.py                subscribe(after) → replay+live, watermark   │
 └──────────────────┬───────────────────────────────────────────────────┘
                    │ same-origin HTTP + WebSocket (cookie-authenticated)
@@ -37,6 +49,9 @@ AGENT.md §4 and deviates from it exactly where noted.
 │  reconnect w/ backoff; pure-feed dedupe/ordering (features/timeline/  │
 │  feed.ts); states: loading / live / reconnecting / error /            │
 │  auth_required; demo sessions carry an explicit synthetic badge       │
+│  features/expertise-map: polled snapshot (2 s) → SVG region map,       │
+│  evidence panel; verified skill chips only; states as text+shape,     │
+│  never color alone; honest stale/off-gap rendering                    │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 

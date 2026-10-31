@@ -23,6 +23,7 @@ from starlette.responses import FileResponse
 
 from backend.app import config as app_config
 from backend.app.api import events as events_api
+from backend.app.api import expertise as expertise_api
 from backend.app.api import health as health_api
 from backend.app.api import sessions as sessions_api
 from backend.app.api import ws as ws_api
@@ -74,6 +75,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health_api.router, prefix="/api")
     app.include_router(events_api.router, prefix="/api")
     app.include_router(sessions_api.router, prefix="/api")
+    app.include_router(expertise_api.router, prefix="/api")
     app.include_router(ws_api.router, prefix="/api")
 
     if settings.production and settings.frontend_dist_dir.exists():

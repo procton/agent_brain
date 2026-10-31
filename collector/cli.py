@@ -1,11 +1,13 @@
 """`observatory` command line interface.
 
 Subcommands (this MVP slice):
-- demo-publish  : materialize explicit synthetic events and write them through
-                  the REAL spool (no Claude Code installation needed)
-- collector     : run the collector daemon that delivers spool events to the
-                  backend
-- doctor        : local diagnostics (no payloads, no settings changes)
+- demo-publish       : materialize explicitly synthetic events and write them
+                       through the REAL spool (no agent integration needed)
+- collector          : run the collector daemon that delivers spool events to
+                       the backend
+- opencode-listen    : passively subscribe to the local OpenCode background
+                       service and publish sanitized events to the spool
+- doctor             : local diagnostics (no payloads, no settings changes)
 """
 
 from __future__ import annotations
@@ -125,6 +127,59 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def cmd_opencode_listen(args: argparse.Namespace) -> int:
+    import asyncio
+
+    from collector.opencode_listener import OpenCodeListener
+
+    settings = _settings_from_env(args.data_dir)
+    spool = Spool(settings.spool_dir)
+    listener = OpenCodeListener(
+        spool,
+        settings=settings,
+        server_url=args.server,
+        password_file=Path(args.password_file) if args.password_file else None,
+    )
+
+    async def run() -> int:
+        import signal
+
+        loop = asyncio.get_running_loop()
+
+        def _stop() -> None:
+            print("stopping opencode-listen...")
+            listener.request_stop()
+
+        for sig in ("SIGINT", "SIGTERM"):
+            try:
+                loop.add_signal_handler(getattr(signal, sig), _stop)
+            except NotImplementedError:  # pragma: no cover - non-unix
+                pass
+
+        if args.seconds:
+            credentials = listener.discovery.credentials()
+            if credentials is None:
+                print(
+                    "[opencode-listen] OpenCode service not discoverable — start OpenCode "
+                    "or pass --server (+ OBSERVATORY_OPENCODE_PASSWORD)."
+                )
+                return 1
+            await listener.stream_limited(
+                auth_header=credentials[0],
+                server_url=credentials[1],
+                seconds=args.seconds,
+            )
+        else:
+            print(
+                f"opencode-listen running; spool={spool.root} (metadata-only capture, Ctrl+C for clean shutdown)"
+            )
+            await listener.run_forever()
+        print(f"opencode-listen stopped; {listener.counters}")
+        return 0
+
+    return asyncio.run(run())
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="observatory", description="local capture tooling for the observatory MVP"
@@ -158,6 +213,28 @@ def build_parser() -> argparse.ArgumentParser:
 
     doctor = sub.add_parser("doctor", help="show local diagnostics")
     doctor.set_defaults(func=cmd_doctor)
+
+    listen = sub.add_parser(
+        "opencode-listen",
+        help="passively capture OpenCode events into the spool",
+    )
+    listen.add_argument(
+        "--server",
+        default=None,
+        help="OpenCode service URL (default: opencode service status discovery)",
+    )
+    listen.add_argument(
+        "--password-file",
+        default=None,
+        help="service password JSON file (default: XDG config opencode/service.json)",
+    )
+    listen.add_argument(
+        "--seconds",
+        type=float,
+        default=None,
+        help="capture for N seconds then exit (default: run until Ctrl+C)",
+    )
+    listen.set_defaults(func=cmd_opencode_listen)
     return parser
 
 

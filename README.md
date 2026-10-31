@@ -1,20 +1,26 @@
 # Agent Activity Observatory — MVP (vertical slice)
 
 A local, **metadata-first** dashboard that visualizes observable agent coding
-activity while the agent keeps working in the user's terminal. This repository
-currently contains the **first working vertical slice** of the product — no
-Claude Code integration is configured or claimed:
+activity while the agent keeps working in the user's terminal. Two validated
+capture paths exist today:
+
+- **OpenCode (live, real integration):** a passive listener subscribes to the
+  OpenCode background-service event stream and publishes sanitized events
+  through the real spool. Verified results, mapping, and limitations live in
+  [docs/opencode-integration.md](docs/opencode-integration.md) (validated on
+  OpenCode 2.2.0; last checked 2026-10-31).
+- **Synthetic demo:** explicit fixture events, clearly labeled in the UI.
 
 ```
-synthetic sanitized event → durable local spool → Python collector
-→ FastAPI → SQLite → WebSocket → React activity timeline
+OpenCode (running) ─┐
+                    ├→ sanitization → durable spool → collector
+synthetic fixtures ─┘      → FastAPI → SQLite → WebSocket → React dashboard
 ```
 
-Everything in this docs set is validated against the end-to-end scenario below.
-**Real agent hook capture is not implemented yet**; the only events in the
-system are explicitly synthetic demo fixtures. See
+Everything in this docs set is validated against the end-to-end scenarios
+below. **Claude Code hook capture is still not implemented**; see
 [docs/claude-code-integration.md](docs/claude-code-integration.md) for the
-honest status of the planned hook integration.
+honest status of that planned integration.
 
 ---
 
@@ -25,30 +31,35 @@ honest status of the planned hook integration.
 | Versioned event schemas (sanitized source + normalized, cursor-based) | ✅ implemented, tested |
 | Atomic local spool (one file/event, `os.replace` publication, bounded, fail-open) | ✅ implemented, tested |
 | Collector daemon (batching, retry + backoff, delete-only-after-accepted, quarantine) | ✅ implemented, tested |
+| OpenCode connector (passive SSE listener, 16-event allowlist, sanitization) | ✅ implemented + validated live (OpenCode 2.2.0) |
 | FastAPI backend (ingest auth, sessions, snapshot, paginated history, live WebSocket) | ✅ implemented, tested |
 | SQLite persistence + Alembic migrations, restart-safe, dedup by event id | ✅ implemented, tested |
 | Replay/reconnect protocol (snapshot → `subscribe(after=cursor)` → replay+live) | ✅ implemented, tested |
+| Expertise engine (deterministic rules, configurable decay, per-event evidence) | ✅ implemented, tested |
+| Skills map UI (SVG regions + evidence panel + verified skill chips + timeline) | ✅ implemented, tested |
 | React dashboard: session selector, live timeline, states, demo labeling | ✅ implemented, tested |
 | Local security: loopback binding, ingest credential, dashboard access code + HttpOnly cookie, origin allowlist, no CORS | ✅ implemented, tested |
-| Privacy: allowlist sanitization, no network in capture path, no raw payloads in spool/logs | ✅ implemented at the demo-publisher level |
+| Privacy: allowlist sanitization, no network in capture path, no raw payloads in spool/logs | ✅ demo-publisher + OpenCode-listener level |
 | Hook receiver for Claude Code, installer, doctor (real integration) | ⛔ next milestone — nothing installed by this code |
-| Expertise classification, brain SVG map | ⛔ deliberately out of scope for this slice |
 | Playwright end-to-end coverage | ⛔ planned (Vitest + RTL coverage exists) |
 
 Core principles honored in this slice:
 
 - **Passive observation only.** Nothing here launches, controls, or approves
-  anything for any agent.
+  anything for any agent (the OpenCode listener issues only `GET /api/event`).
 - **Metadata first.** Prompts, file contents, unrestricted command text and
   tool output are never persisted; the spool contains only allowlisted
   summary fields (tool names, project-relative paths, coarse command
-  categories).
-- **Evidence over inference.** No expertise labels, no hidden-reasoning
-  claims, no fabricated telemetry. Session states derive only from observed
-  event kinds.
+  categories). OpenCode text deltas, session titles and token usage are
+  dropped at the listener.
+- **Evidence over inference.** The skills map shows recent *observed*
+  activity per region, each region backed by listed evidence events; decay
+  is configurable and intensity never means effort or ability. Explicit
+  skill chips appear only for **verified** activation events (OpenCode
+  `session.skill.activated`); nothing else is ever invented.
 - **The dashboard is not a dependency of the workflow.** If the backend goes
-  down, the collector queues locally and Claude Code (in future milestones)
-  is never blocked.
+  down, the collector queues locally and the agents keep working untouched;
+  if the listener stops, OpenCode keeps working unaffected.
 
 See [AGENTS.md](AGENTS.md) (the project specification) for the full product
 scope and constraints.
@@ -121,6 +132,38 @@ Useful switches: `--repetitions N` (N passes over the fixture), `--fixture
 path.json`, `--session-id custom-id`, `--data-dir path` and `--backend URL`
 (globals, before the subcommand).
 
+### Quick start (OpenCode, live capture — 3 terminals)
+
+Prerequisite: an OpenCode ≥ 2.2.0 background service running (`opencode`
+open somewhere is enough; the listener discovers the loopback URL and reads
+the service password from `~/.config/opencode/service.json`, never printing
+or persisting it). Zero OpenCode configuration is touched — the listener is
+read-only (`GET /api/event` only).
+
+```bash
+# terminal 1 — backend, in production mode so it also serves the built UI
+OBSERVATORY_ENV=production ./brain/bin/uvicorn backend.app.main:app \
+  --host 127.0.0.1 --port 8041 --log-level warning
+# -> open http://127.0.0.1:8041 (backend serves the dashboard itself)
+
+# terminal 2 — collector (spool → backend, same data dir)
+OBSERVATORY_DATA_DIR=~/.local/share/agent-brain-observatory \
+  ./brain/bin/observatory --backend http://127.0.0.1:8041 collector
+
+# terminal 3 — the OpenCode listener (same data dir)
+OBSERVATORY_DATA_DIR=~/.local/share/agent-brain-observatory \
+  ./brain/bin/observatory opencode-listen
+```
+
+Then work in OpenCode normally: as soon as it reads files, runs commands or
+activates a skill, the session appears in the dashboard with project-relative
+paths, region activity with its evidence, and verified skill chips
+(`none observed` is the honest no-skill state). `OBSERVATORY_OPENCODE_SERVER`
++ `OBSERVATORY_OPENCODE_PASSWORD` (env or `--server/--password-file`) override
+discovery. See
+[docs/opencode-integration.md](docs/opencode-integration.md) for the full
+verified event mapping, dropped signals, and known limitations.
+
 ---
 
 ## 3. Acceptance scenario (the one this slice was built for)
@@ -157,6 +200,22 @@ Automated equivalents (running against mocks/fixtures, no manual steps):
 replay, live delivery, reconnect-without-loss, origin/cookie rejection) and
 `backend/tests/test_persistence_restart.py` (restart + duplicate replay).
 
+### Validated live (OpenCode connector, 2026-10-31)
+
+Beyond fixtures, the OpenCode path was exercised against a real running
+OpenCode 2.2.0 on this repository: this very coding session produced the
+telemetry. Verified end-to-end — real tool events ingested with
+`source = opencode` and `project_label = agent_brain`; every persisted
+summary project-relative with **zero** occurrences of `/home/…` usernames;
+a failed `pytest` run still classified as `testing/command-test-signature`
+(observability of activity, not success); a `read` of `docs/privacy.md`
+classified as `code_exploration/read-tools`; the expertise snapshot served
+by the public API showed `code_exploration` and `testing` active with their
+evidence and skills honest (`none observed`); backend outage → collector
+backoff → full delivery of the same event IDs after restart; `/events?after=`
+replay in cursor order, OpenCode-only sources; backend-stop + browser
+refresh recovered the full history.
+
 ---
 
 ## 4. Exact commands
@@ -181,6 +240,7 @@ cd frontend && npm install
 | `./brain/bin/observatory collector` | collector daemon (clean shutdown on Ctrl+C) |
 | `./brain/bin/observatory collector --once` | deliver queued events, exit |
 | `./brain/bin/observatory demo-publish` | publish synthetic events through the spool |
+| `./brain/bin/observatory opencode-listen` | passive OpenCode SSE listener → spool (read-only; `opencode-listen --seconds N` for a bounded smoke test) |
 | `./brain/bin/observatory doctor` | local diagnostics (read-only) |
 | `cd frontend && npm run dev` | Vite dev server on 127.0.0.1:5173 (proxies `/api`) |
 
@@ -193,18 +253,20 @@ cd frontend && npm install
 | `OBSERVATORY_HOST` / `OBSERVATORY_PORT` | `127.0.0.1` / `8000` | bind address **and the port used to derive allowed browser origins — keep it matching `uvicorn --port`** |
 | `OBSERVATORY_ENV` | `development` | `production` also serves `frontend/dist` |
 | `OBSERVATORY_DEV_ORIGINS` | `http://localhost:5173 …` | explicit dev-only origin allowlist extras |
+| `OBSERVATORY_OPENCODE_SERVER` | auto (via `opencode service status`) | listener override: the service base URL |
+| `OBSERVATORY_OPENCODE_PASSWORD` | auto (`~/.config/opencode/service.json`) | listener override: the service password (stays in memory only) |
 
 ### Tests / checks
 
 ```bash
-# Python (backend + collector): 74 tests
+# Python (backend + collector): 103 tests
 ./brain/bin/python -m pytest backend/tests collector/tests
 
 # Lint + format (Python)
 ./brain/bin/ruff check backend collector
 ./brain/bin/ruff format backend collector
 
-# Frontend: 14 tests
+# Frontend: 26 tests
 cd frontend && npm test
 
 # Frontend lint + typecheck + production build
@@ -225,8 +287,14 @@ OBSERVATORY_ENV=production ./brain/bin/uvicorn backend.app.main:app --host 127.0
 ## 5. Data flow and guarantees
 
 ```
-observatory demo-publish (synthetic fixture, allowlist-sanitized payloads)
-        │  writes JSON files (tmp + os.replace → atomic publication, no locking)
+observatory opencode-listen        observatory demo-publish
+(passive OpenCode SSE listener;    (synthetic fixture,
+ 16-event allowlist + metadata      allowlist-sanitized payloads)
+ sanitization; deltas/usage/titles
+ dropped before any spool write)
+        │                                  │
+        └── writes JSON files, same spool API (tmp + os.replace → atomic
+            publication, no locking)
         ▼
       spool/                     ── one file per event: <nanotimestamp>-<event_id>.json
         │

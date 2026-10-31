@@ -40,6 +40,9 @@ class Settings:
     # Browser dashboard session lifetime, in seconds.
     dashboard_session_ttl_seconds: int = 12 * 3600
 
+    # Expertise-map decay: intensity halves this often while fading.
+    expertise_decay_half_life_seconds: int = 20
+
     @property
     def production(self) -> bool:
         return self.env == "production"
