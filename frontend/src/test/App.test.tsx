@@ -368,4 +368,19 @@ describe("Expertise map in App", () => {
     });
     expect(screen.queryByText(/no events received/)).not.toBeInTheDocument();
   });
+
+  it("keeps the activity timeline collapsed by default and expands on demand", async () => {
+    const user = await openWithExpertise(makeExpertiseSnapshot());
+
+    const block = document.querySelector("details.timeline-block") as HTMLDetailsElement;
+    expect(block).not.toBeNull();
+    expect(block.open).toBe(false); // the map owns the space until asked
+    expect(screen.getByTestId("timeline-count")).toHaveTextContent(/\d+ events?/);
+
+    await user.click(screen.getByText("Activity timeline"));
+    expect(block.open).toBe(true);
+
+    await user.click(screen.getByText("Activity timeline"));
+    expect(block.open).toBe(false);
+  });
 });

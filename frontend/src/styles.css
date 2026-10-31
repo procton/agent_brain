@@ -273,11 +273,36 @@ input {
   padding-top: 0.9rem;
 }
 
+/* Collapsed-by-default bottom panel (AGENTS.md §11: the timeline must not
+   steal space from the map). Collapsed = one summary line; events keep
+   updating the visible count while folded away. */
 .timeline-title {
-  margin: 0 0 0.7rem;
+  margin: 0;
   font-size: 0.95rem;
   color: var(--muted);
   font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  list-style: none;
+}
+
+.timeline-title::-webkit-details-marker {
+  display: none;
+}
+
+.timeline-title::before {
+  content: "▸";
+  color: var(--muted);
+}
+
+.timeline-block[open] .timeline-title::before {
+  content: "▾";
+}
+
+.timeline-count {
+  font-weight: 400;
 }
 
 .expertise-map {

@@ -68,6 +68,9 @@ scope and constraints.
 
 ## 2. Quick start (3 terminals, no agent required)
 
+Launcher scripts for the live OpenCode flow live in `scripts/` (see the
+Quick start further below); this section shows the manual equivalents.
+
 Requirements: **Python ≥ 3.12** (the repo's `./brain` venv uses 3.14) and
 **Node 22+**. Linux/macOS primary; Windows supported in principle but
 untested yet.
@@ -146,21 +149,21 @@ the service password from `~/.config/opencode/service.json`, never printing
 or persisting it). Zero OpenCode configuration is touched — the listener is
 read-only (`GET /api/event` only).
 
+Three launcher scripts replace the copy/paste commands (forward any extra
+args to the underlying command; `OBSERVATORY_PORT`/`OBSERVATORY_DATA_DIR`
+defaults: 8041 / platform data dir):
+
 ```bash
-# terminal 1 — backend, in production mode so it also serves the built UI
-OBSERVATORY_ENV=production OBSERVATORY_PORT=8041 ./brain/bin/uvicorn backend.app.main:app \
-  --host 127.0.0.1 --port 8041 --log-level warning
-# -> open http://127.0.0.1:8041 (backend serves the dashboard itself)
+# terminal 1 — backend, production mode (serves API + built UI)
+./scripts/start-backend.sh
+# -> open http://127.0.0.1:8041
 # -> the dashboard access code is PRINTED here at startup
-#    (rotating: stop backend, delete dashboard_code file, restart)
 
-# terminal 2 — collector (spool → backend, same data dir)
-OBSERVATORY_DATA_DIR=~/.local/share/agent-brain-observatory \
-  ./brain/bin/observatory --backend http://127.0.0.1:8041 collector
+# terminal 2 — collector (spool → backend)
+./scripts/start-collector.sh
 
-# terminal 3 — the OpenCode listener (same data dir)
-OBSERVATORY_DATA_DIR=~/.local/share/agent-brain-observatory \
-  ./brain/bin/observatory opencode-listen
+# terminal 3 — the passive OpenCode listener
+./scripts/start-opencode-listen.sh
 ```
 
 Then work in OpenCode normally: as soon as it reads files, runs commands or
@@ -244,7 +247,10 @@ cd frontend && npm install
 
 | Command | What it does |
 |---|---|
-| `./brain/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000` | backend API + WebSocket (loopback) |
+| `./scripts/start-backend.sh` | backend, production mode, port 8041 (code printed at startup) |
+| `./scripts/start-collector.sh` | collector daemon → backend on `$OBSERVATORY_PORT` (default 8041) |
+| `./scripts/start-opencode-listen.sh` | passive OpenCode listener → spool |
+| `./brain/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000` | backend API + WebSocket (loopback, manual) |
 | `./brain/bin/observatory collector` | collector daemon (clean shutdown on Ctrl+C) |
 | `./brain/bin/observatory collector --once` | deliver queued events, exit |
 | `./brain/bin/observatory demo-publish` | publish synthetic events through the spool |

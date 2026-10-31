@@ -178,14 +178,19 @@ export default function App() {
           <EvidencePanel region={selectedRegion} />
         </div>
 
-        <section className="timeline-block" aria-label="Activity timeline">
-          <h2 className="timeline-title">Activity timeline</h2>
+        <details className="timeline-block" aria-label="Activity timeline">
+          <summary className="timeline-title">
+            Activity timeline
+            <span className="badge timeline-count" data-testid="timeline-count">
+              {live.events.length} events
+            </span>
+          </summary>
           <ActivityTimeline
             events={live.events}
             hasOlderNotLoaded={live.hasOlderNotLoaded}
             status={live.status}
           />
-        </section>
+        </details>
       </section>
     </main>
   );
