@@ -7,6 +7,7 @@ import { useLiveSession } from "./features/timeline/useLiveSession";
 import ExpertiseMap from "./features/expertise-map/ExpertiseMap";
 import EvidencePanel from "./features/expertise-map/EvidencePanel";
 import SkillBadges from "./features/expertise-map/SkillBadges";
+import KnowhowBadges from "./features/expertise-map/KnowhowBadges";
 import { useExpertise } from "./features/expertise-map/useExpertise";
 import { AccessCodeGate } from "./components/AccessCodeGate";
 import { RenderingStates } from "./components/States";
@@ -158,6 +159,7 @@ export default function App() {
         <div className="main-row">
           <div className="map-column">
             <SkillBadges skills={expertise.snapshot?.skills ?? []} />
+            <KnowhowBadges knowhow={expertise.snapshot?.knowhow ?? []} />
             <ExpertiseMap
               regions={expertiseRegions}
               selectedKey={selectedRegionKey}

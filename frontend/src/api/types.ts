@@ -115,6 +115,7 @@ export interface ExpertiseEvidence {
   tool: string | null;
   target: string | null;
   command: string | null;
+  knowhow: string[] | null;
   basis: LabelBasis | string;
   rule_id: string;
   confidence: string;
@@ -138,6 +139,15 @@ export interface SkillActivation {
   recent: boolean;
 }
 
+export interface KnowhowRow {
+  name: string;
+  state: string;
+  intensity: number;
+  basis: "observed" | "verified";
+  evidence: ExpertiseEvidence[];
+  evidence_count: number;
+}
+
 export interface ExpertiseSnapshot {
   schema_version: number;
   session_id: string;
@@ -145,6 +155,7 @@ export interface ExpertiseSnapshot {
   generated_at: string;
   regions: ExpertiseRegion[];
   skills: SkillActivation[];
+  knowhow: KnowhowRow[];
   // Honesty fields (backend clock): when the last event was seen and whether
   // the session has gone past the staleness threshold. "stale" never claims
   // anything about what the agent did between events.

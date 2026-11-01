@@ -49,6 +49,7 @@ async def session_expertise(request: Request, session_id: str) -> ExpertiseSnaps
                     Event.occurred_at,
                     Event.received_at,
                     Event.summary,
+                    Event.knowhow,
                 )
                 .where(Event.session_id == session_row.id)
                 .order_by(Event.cursor.desc())
@@ -64,6 +65,7 @@ async def session_expertise(request: Request, session_id: str) -> ExpertiseSnaps
             "occurred_at": row.occurred_at,
             "received_at": row.received_at,
             "summary": dict(row.summary or {}),
+            "knowhow": list(row.knowhow) if row.knowhow is not None else [],
         }
         for row in rows
     ]

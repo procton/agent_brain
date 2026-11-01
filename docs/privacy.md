@@ -46,6 +46,19 @@ Absent/unknown payload fields are dropped, never guessed. The demo publisher
 is explicitly synthetic: `fixtures/synthetic/demo_session.json` contains no
 captured data whatsoever.
 
+## Tag knowhow (asse tecnologie)
+
+Ogni evento può portare dei **tag knowhow** (python, typescript, sql, git,
+containers, …, `classification/knowhow.py`), calcolati *all'ingest* e
+derivati **esclusivamente** dai metadati già sanificati elencati qui sopra:
+estensione/segmenti di percorso del target, token-grossolano di comando
+allowlistato, o corrispondenza esatta del nome di una skill **verificata**
+(`session.skill.activated`). Il vocabolario è a tabella chiusa: nessun nuovo
+contenuto viene raccolto, letto o dedotto per produrli. Un tag dichiara
+"tecnologia osservata in attività recente" — mai competenza, mai paradigmi
+(oop, functional, …): quelle sono proprietà del *contenuto del codice*, che
+questo sistema non raccoglie per design.
+
 ## Where data lives
 
 | Item | Location (default) | Permissions |

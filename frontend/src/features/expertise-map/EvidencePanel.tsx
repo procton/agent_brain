@@ -59,6 +59,15 @@ export default function EvidencePanel({ region }: EvidencePanelProps) {
                 <span className="evidence-confidence">{item.confidence}</span>
               </div>
               <div className="evidence-detail">{evidenceSummary(item)}</div>
+              {item.knowhow && item.knowhow.length > 0 ? (
+                <ul className="evidence-knowhow" aria-label="Technologies of this event">
+                  {item.knowhow.map((name, tagIndex) => (
+                    <li key={`${item.event_id}-${tagIndex}-${name}`} className="knowhow-chip knowhow-chip-inline">
+                      {name}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
               <div className="evidence-cursor">
                 {item.cursor !== null ? `cursor ${item.cursor}` : ""}
               </div>

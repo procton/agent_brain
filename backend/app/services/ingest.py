@@ -17,6 +17,7 @@ import uuid
 
 from sqlalchemy import select
 
+from backend.app.classification.knowhow import classify_knowhow
 from backend.app.classification.rules import classify_event
 from backend.app.config import Settings
 from backend.app.database.engine import SessionFactory
@@ -138,6 +139,11 @@ class IngestionService:
             source_event.summary,
             evidence_event_id=source_event.event_id,
         )
+        knowhow = classify_knowhow(
+            source_event.kind,
+            source_event.summary,
+            evidence_event_id=source_event.event_id,
+        )
         row = Event(
             event_id=str(source_event.event_id),
             session_id=session_row_id,
@@ -150,6 +156,7 @@ class IngestionService:
             correlation=source_event.correlation.model_dump(),
             summary=source_event.summary,
             expertise=labels or None,
+            knowhow=knowhow or None,
         )
         db.add(row)
         await db.flush()  # assigns the cursor

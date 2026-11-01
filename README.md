@@ -36,6 +36,7 @@ honest status of that planned integration.
 | SQLite persistence + Alembic migrations, restart-safe, dedup by event id | ✅ implemented, tested |
 | Replay/reconnect protocol (snapshot → `subscribe(after=cursor)` → replay+live) | ✅ implemented, tested |
 | Expertise engine (deterministic rules, configurable decay, per-event evidence) | ✅ implemented, tested |
+| Knowhow axis (per-event technology tags: python/typescript/sql/…; privacy.md §Tag knowhow) | ✅ implemented, tested |
 | Skills map UI (SVG regions + evidence panel + verified skill chips + timeline) | ✅ implemented, tested |
 | React dashboard: session selector, live timeline, states, demo labeling | ✅ implemented, tested |
 | Local security: loopback binding, ingest credential, dashboard access code + HttpOnly cookie, origin allowlist, no CORS | ✅ implemented, tested |

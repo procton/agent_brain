@@ -424,6 +424,56 @@ input {
   opacity: 0.85;
 }
 
+/* Knowhow axis chips (technology tags). State is always in the text
+   (basis · state) so dimming is never the only signal. */
+.knowhow-row {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 0.7rem;
+  padding: 0;
+}
+
+.knowhow-row-empty {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin: 0 0 0.7rem;
+}
+
+.knowhow-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid #4ea1a8;
+  color: #a8d8dc;
+  background: rgba(78, 161, 168, 0.12);
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.knowhow-fading {
+  opacity: 0.72;
+}
+
+.knowhow-idle {
+  opacity: 0.5;
+  border-color: var(--border);
+  color: var(--muted);
+  background: var(--panel-2);
+}
+
+.knowhow-name {
+  font-weight: 650;
+}
+
+.knowhow-meta {
+  font-size: 0.72rem;
+  color: inherit;
+  opacity: 0.85;
+}
+
 .evidence-panel {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -500,6 +550,25 @@ input {
   color: var(--text);
   font-size: 0.8rem;
   margin-top: 0.2rem;
+}
+
+/* Per-event technology tags inside an evidence row (knowhow axis). */
+.evidence-knowhow {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0.25rem 0 0;
+  padding: 0;
+}
+
+.knowhow-chip-inline {
+  border: 1px solid #4ea1a8;
+  color: #a8d8dc;
+  background: rgba(78, 161, 168, 0.1);
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+  font-size: 0.7rem;
 }
 
 .evidence-cursor {

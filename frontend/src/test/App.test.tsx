@@ -112,6 +112,7 @@ export function makeExpertiseSnapshot(overrides: Partial<ExpertiseSnapshot> = {}
       evidence_count: 0,
     })),
     skills: [],
+    knowhow: [],
     last_event_at: null,
     stale_seconds: null,
     stale: false,
@@ -382,5 +383,59 @@ describe("Expertise map in App", () => {
 
     await user.click(screen.getByText("Activity timeline"));
     expect(block.open).toBe(false);
+  });
+
+  it("renders the knowhow chips lane with honest basis and state labels", async () => {
+    await openWithExpertise(
+      makeExpertiseSnapshot({
+        knowhow: [
+          {
+            name: "python",
+            state: "active",
+            intensity: 2.4,
+            basis: "verified",
+            evidence: [],
+            evidence_count: 3,
+          },
+          {
+            name: "sql",
+            state: "fading",
+            intensity: 0.7,
+            basis: "observed",
+            evidence: [],
+            evidence_count: 2,
+          },
+          {
+            name: "git",
+            state: "inactive",
+            intensity: 0,
+            basis: "observed",
+            evidence: [],
+            evidence_count: 35,
+          },
+        ],
+      })
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("knowhow-row")).toBeInTheDocument();
+    });
+
+    // Active and fading render; inactive never does.
+    expect(screen.getByText("python")).toBeInTheDocument();
+    expect(screen.getByText("sql")).toBeInTheDocument();
+    expect(screen.queryByText("git")).not.toBeInTheDocument();
+
+    // Honest labeling in the chips themselves (text, never color-only).
+    expect(screen.getByText(/verified · active/)).toBeInTheDocument();
+    expect(screen.getByText(/observed · fading/)).toBeInTheDocument();
+  });
+
+  it("shows an explicit empty knowhow lane instead of silence", async () => {
+    // Default mock has knowhow: [] — no fabricated technologies.
+    await openWithExpertise(makeExpertiseSnapshot());
+    await waitFor(() => {
+      expect(screen.getByTestId("knowhow-row")).toBeInTheDocument();
+    });
+    expect(screen.getByText(/No specific technology observed/)).toBeInTheDocument();
   });
 });

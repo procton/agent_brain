@@ -33,6 +33,8 @@ AGENT.md §4 and deviates from it exactly where noted.
 │  services/ingest.py       dedupe(event_id) → upsert → persist →       │
 │  classification/rules.py  per-event expertise labels at ingest        │
 │                           get_events.expertise (JSON, schema v1)      │
+│  classification/knowhow.py technology tags (2nd axis, same metadata)  │
+│                           get_events.knowhow (JSON, schema v1)        │
 │                           broadcast (one lock spans cursor order)     │
 │  database (SQLite WAL + Alembic)                                      │
 │    machines · sessions · events(cursor PK, unique event_id, idx       │
@@ -50,8 +52,9 @@ AGENT.md §4 and deviates from it exactly where noted.
 │  feed.ts); states: loading / live / reconnecting / error /            │
 │  auth_required; demo sessions carry an explicit synthetic badge       │
 │  features/expertise-map: polled snapshot (2 s) → SVG region map,       │
-│  evidence panel; verified skill chips only; states as text+shape,     │
-│  never color alone; honest stale/off-gap rendering                    │
+│  evidence panel; verified skill chips only; knowhow chips lane (tech  │
+│  tags, observed/verified); states as text+shape, never color alone;   │
+│  honest stale/off-gap rendering                                       │                    │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 

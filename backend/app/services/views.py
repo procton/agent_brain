@@ -48,4 +48,5 @@ def to_normalized_event(row: Event) -> NormalizedEvent:
         correlation=dict(row.correlation or {}),
         summary=dict(row.summary or {}),
         expertise=list(row.expertise) if row.expertise is not None else None,
+        knowhow=list(row.knowhow) if row.knowhow is not None else None,
     )

@@ -237,3 +237,36 @@ def test_expertise_config_follows_env_overrides(tmp_path, monkeypatch):
     assert config.debugging_min_failures == 4
     assert config.debugging_failure_window_seconds == 55
     assert config.staleness_threshold_seconds == 11
+
+
+def test_knowhow_axis_aggregates_with_same_decay_and_honesty():
+    from backend.app.classification.knowhow import VOCABULARY, classify_knowhow
+
+    events = [
+        make_event(1, "tool.completed", {"tool": "edit", "target": "src/engine.py"}, at=BASE),
+        make_event(2, "skill.activated", {"skill": "python"}, at=BASE),
+        make_event(
+            2,
+            "skill.activated",
+            {"skill": "python"},
+            at=BASE,
+            event_id="evt-2b",
+        ),
+    ]
+    # The snapshot consumes precomputed tags (persisted at ingest time by the
+    # API path); recompute them here exactly as ingest would.
+    for event in events:
+        event["knowhow"] = classify_knowhow(
+            event["kind"], event["summary"], evidence_event_id=event["event_id"]
+        )
+    snap = build_snapshot(events, config=ExpertiseConfig(), now=BASE + timedelta(seconds=10))
+
+    rows = snap["knowhow"]
+    assert {row["name"] for row in rows} == set(VOCABULARY)  # full stable set
+    py = next(row for row in rows if row["name"] == "python")
+    assert py["state"] == "active"
+    assert py["basis"] in ("observed", "verified")
+    assert py["evidence"], "knowhow rows carry their evidence events"
+    # vocabulary ordering: strongest intensity first, then alphabetical
+    intensities = [row["intensity"] for row in rows]
+    assert intensities == sorted(intensities, reverse=True)

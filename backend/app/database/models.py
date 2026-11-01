@@ -75,6 +75,9 @@ class Event(Base):
     # Deterministic expertise labels computed at ingest time:
     # [{label, basis, rule_id, confidence, evidence_event_id}] (see classification/).
     expertise: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    # Knowhow axis (technology tags), same ingest-time origin:
+    # [{name, basis, rule_id, confidence, evidence_event_id}] (see classification/knowhow.py).
+    knowhow: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
 
 SCHEMA_VERSION_TABLE = "__schema_metadata__"

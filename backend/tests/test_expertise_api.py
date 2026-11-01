@@ -118,3 +118,45 @@ async def test_expertise_snapshot_marks_stale_sessions_honestly(client):
     snap2 = (await client.http.get(f"/api/sessions/{session_id}/expertise")).json()
     assert snap2["last_event_at"] == fresh_ts
     assert snap2["stale"] is False
+
+
+async def test_expertise_snapshot_carries_the_knowhow_axis(client):
+    login = await client.login()
+    assert login.status_code == 200
+
+    from datetime import UTC, datetime, timedelta
+
+    base = datetime.now(UTC) - timedelta(seconds=15)
+    events = [
+        make_source_event(
+            kind="tool.requested",
+            source_event="PreToolUse",
+            index=0,
+            tool="edit",
+            target="src/engine.py",
+            occurred_at=(base).isoformat(timespec="milliseconds"),
+        ),
+        make_source_event(
+            kind="tool.requested",
+            source_event="PreToolUse",
+            index=1,
+            tool="shell",
+            occurred_at=(base + timedelta(seconds=1)).isoformat(timespec="milliseconds"),
+        ),
+    ]
+    events[1]["summary"]["command"] = "pytest"
+    accepted = await ingest(client, events)
+    assert accepted.status_code == 200
+
+    listing = await client.http.get("/api/sessions")
+    session_id = listing.json()["sessions"][0]["id"]
+    snap = (await client.http.get(f"/api/sessions/{session_id}/expertise")).json()
+
+    knowhow = {row["name"]: row for row in snap["knowhow"]}
+    assert knowhow["python"]["state"] == "active"
+    assert knowhow["python"]["evidence_count"] == 2
+    assert all(tag["basis"] == "observed" for tag in knowhow["python"]["evidence"])
+
+    # Region evidence rows now carry the knowhow names of the same event.
+    backend_evidence = next(region for region in snap["regions"] if region["key"] == "backend")["evidence"]
+    assert backend_evidence[0]["knowhow"] == ["python"]

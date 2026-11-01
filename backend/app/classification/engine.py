@@ -24,6 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
+from backend.app.classification.knowhow import VOCABULARY
 from backend.app.classification.rules import REGION_LABELS, REGIONS, classify_event
 from backend.app.schemas.base import EventKind
 
@@ -119,6 +120,8 @@ def build_snapshot(
     failures: list[tuple[float, str, str, str]] = []  # (ts, stamp, event_id, token)
     skills: dict[str, dict] = {}
     last_seen: tuple[float, str | None] = (float("-inf"), None)  # (max ts, its stamp)
+    knowhow_intensity: dict[str, list[tuple[float, str]]] = {}
+    knowhow_evidence: dict[str, list[dict]] = {}
 
     # Stable order for tie-breaking by cursor.
     ordered = sorted(events, key=lambda e: e.get("cursor") or 0)
@@ -145,13 +148,32 @@ def build_snapshot(
                     "event_id": event_id,
                     "cursor": event.get("cursor"),
                     "kind": kind,
-                    "ts": event.get("occurred_at") or event.get("received_at"),
+                    "ts": stamp,
                     "tool": summary.get("tool"),
                     "target": summary.get("target"),
                     "command": summary.get("command"),
+                    "knowhow": [tag["name"] for tag in event.get("knowhow") or []],
                     "basis": label["basis"],
                     "rule_id": label["rule_id"],
                     "confidence": label["confidence"],
+                }
+            )
+
+        for tag in event.get("knowhow") or []:
+            name = tag["name"]
+            knowhow_intensity.setdefault(name, []).append((ts, event_id))
+            knowhow_evidence.setdefault(name, []).append(
+                {
+                    "event_id": event_id,
+                    "cursor": event.get("cursor"),
+                    "kind": kind,
+                    "ts": stamp,
+                    "tool": summary.get("tool"),
+                    "target": summary.get("target"),
+                    "command": summary.get("command"),
+                    "basis": tag["basis"],
+                    "rule_id": tag["rule_id"],
+                    "confidence": tag["confidence"],
                 }
             )
 
@@ -222,6 +244,28 @@ def build_snapshot(
             }
         )
 
+    knowhow_rows: list[dict] = []
+    for name in VOCABULARY:
+        items = knowhow_intensity.get(name, [])
+        intensity = min(_decayed(items, now_ts, config), 4.0)
+        row_evidence = sorted(
+            knowhow_evidence.get(name, []),
+            key=lambda item: item["cursor"] or 0,
+            reverse=True,
+        )
+        basis = "verified" if any(item["basis"] == "verified" for item in row_evidence) else "observed"
+        knowhow_rows.append(
+            {
+                "name": name,
+                "state": "inactive" if not items else region_state(intensity, config),
+                "intensity": round(min(intensity, 99), 2),
+                "basis": basis,
+                "evidence": row_evidence[: config.evidence_per_region],
+                "evidence_count": len(row_evidence),
+            }
+        )
+    knowhow_rows.sort(key=lambda row: (-row["intensity"], row["name"]))
+
     skill_rows = sorted(
         (
             {
@@ -250,6 +294,7 @@ def build_snapshot(
     return {
         "schema_version": 1,
         "regions": region_rows,
+        "knowhow": knowhow_rows,
         "skills": skill_rows,
         "last_event_at": last_event_at,
         "stale_seconds": stale_seconds,

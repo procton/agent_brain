@@ -38,6 +38,10 @@ class NormalizedEvent(BaseModel):
     # [{label, basis, rule_id, confidence, evidence_event_id}]. None for legacy
     # rows; the schemas stay additive (still schema_version 1).
     expertise: list[dict] | None = None
+    # Knowhow axis (technology tags, classification/knowhow.py):
+    # [{name, basis, rule_id, confidence, evidence_event_id}]. None for rows
+    # from before this axis existed.
+    knowhow: list[dict] | None = None
 
 
 class SessionView(BaseModel):

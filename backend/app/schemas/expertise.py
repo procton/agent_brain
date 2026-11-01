@@ -20,6 +20,9 @@ class EvidenceItem(BaseModel):
     basis: str  # observed | inferred (observed only for explicit skill usage)
     rule_id: str
     confidence: str  # low | medium | high (qualitative only)
+    # Technology tags of the same event (knowhow axis names); None for legacy
+    # rows persisted before the axis existed.
+    knowhow: list[str] | None = None
 
 
 class RegionRow(BaseModel):
@@ -29,6 +32,19 @@ class RegionRow(BaseModel):
     label: str
     state: str  # active | fading | idle | inactive
     intensity: float
+    evidence: list[EvidenceItem]
+    evidence_count: int
+
+
+class KnowhowRow(BaseModel):
+    """One technology on the knowhow axis (see classification/knowhow.py)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    state: str  # same vocabulary as regions
+    intensity: float
+    basis: str  # observed | verified (verified only from exact skill matches)
     evidence: list[EvidenceItem]
     evidence_count: int
 
@@ -55,6 +71,7 @@ class ExpertiseSnapshot(BaseModel):
     generated_at: str
     regions: list[RegionRow]
     skills: list[SkillRow]
+    knowhow: list[KnowhowRow]
     # Honesty fields: the last event seen (any age) and how stale it is on the
     # backend clock. `stale` says "no events received lately"; it never claims
     # anything about agent activity between events.

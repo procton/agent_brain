@@ -466,6 +466,24 @@ Keep the concepts separate:
 
 Do not display explicit skill activation unless the adapter has verified evidence. Leaving this feature absent is preferable to inventing activations.
 
+### Knowhow axis (technology tags)
+
+A second, orthogonal per-event axis (`classification/knowhow.py`) tags which
+*technologies* an observed action implies — e.g. "is it using python?",
+"which tool/technology per action?" — from the same sanitized metadata and a
+closed table vocabulary (`python`, `typescript`, `sql`, `git`, `containers`, …),
+with basis `verified` only for exact skill-name matches on a real activation
+event. Rules:
+
+- Priority per technology: skill-verified > command token > container basename
+  > migration segment > file extension; first match wins, unknown yields NO tag.
+- A tag means "technology seen in recent observed activity" — never proficiency
+  or knowledge depth (same honesty contract as intensity).
+- Paradigms and architecture patterns (e.g. object-oriented) are content
+  properties and stay out of scope: metadata cannot honestly claim them.
+- Knowhow rows appear in the expertise snapshot and the UI (chips + per-event
+  evidence), and explain their evidence like regions do.
+
 ### Activity intensity
 
 Compute region intensity from a documented combination of recent relevant events and supported outstanding actions.
