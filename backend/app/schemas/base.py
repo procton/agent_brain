@@ -28,6 +28,10 @@ SessionState = Literal["unknown", "turn_active", "turn_finished", "ended"]
 
 EVENT_KINDS: frozenset[str] = frozenset(EventKind.__args__)  # type: ignore[attr-defined]
 
+# The explicit skill-activation kind — the only event kind from which a
+# `basis="verified"` label/tag may originate (see classification/).
+SKILL_EVENT_KIND: EventKind = "skill.activated"
+
 SCHEMA_VERSION = 1
 
 # Conservative state transitions derived only from event kinds actually seen.

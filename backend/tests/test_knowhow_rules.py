@@ -145,3 +145,34 @@ def test_session_kinds_carry_no_knowhow():
         evidence_event_id="evt-9",
     )
     assert names(tags) == []
+
+
+def test_composite_filenames_keep_their_technology():
+    """Multi-dot names must still tag (longest suffix chain, not only the first)."""
+    for target, expected in (
+        ("src/main.test.tsx", "typescript"),
+        ("src/app.module.css", "css"),
+        ("scripts/build.spec.js", "javascript"),
+    ):
+        tags = classify_knowhow(
+            "tool.completed",
+            {"tool": "edit", "target": target},
+            evidence_event_id="evt-10",
+        )
+        assert names(tags) == [expected], target
+
+
+def test_dotfiles_like_d_ts_do_not_double_tag_or_skip():
+    tags = classify_knowhow(
+        "tool.completed",
+        {"tool": "edit", "target": "src/types/app.d.ts"},
+        evidence_event_id="evt-11",
+    )
+    assert names(tags) == ["typescript"]
+
+    hidden = classify_knowhow(
+        "tool.completed",
+        {"tool": "edit", "target": "src/.hidden.py"},
+        evidence_event_id="evt-12",
+    )
+    assert names(hidden) == ["python"]

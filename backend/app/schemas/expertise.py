@@ -17,7 +17,9 @@ class EvidenceItem(BaseModel):
     tool: str | None = None
     target: str | None = None
     command: str | None = None
-    basis: str  # observed | inferred (observed only for explicit skill usage)
+    # Regions use `inferred`; knowhow-tag evidence uses `observed`
+    # (metadata-derived) or `verified` (real skill-activation event).
+    basis: str
     rule_id: str
     confidence: str  # low | medium | high (qualitative only)
     # Technology tags of the same event (knowhow axis names); None for legacy

@@ -23,7 +23,7 @@ Row shape: {name, basis, rule_id, confidence, evidence_event_id}.
 
 from __future__ import annotations
 
-from backend.app.schemas.base import EventKind
+from backend.app.schemas.base import SKILL_EVENT_KIND
 
 VOCABULARY: tuple[str, ...] = (
     "python",
@@ -45,7 +45,6 @@ VOCABULARY: tuple[str, ...] = (
 _NAME = set(VOCABULARY)
 
 KNOWNHOW_KINDS = ("tool.requested", "tool.completed", "tool.failed")
-SKILL_EVENT_KIND: EventKind = "skill.activated"
 
 _EXTENSIONS: dict[str, frozenset[str]] = {
     "python": frozenset({".py", ".pyi"}),
@@ -102,16 +101,15 @@ _CONFIDENCE = {
 
 
 def _extensions(target: str) -> list[str]:
-    """Suffixes of the target filename, longest first (`.spec.tsx`, `.tsx`)."""
+    """All suffixes of the filename, longest first: a.spec.tsx -> [.spec.tsx, .tsx]."""
     lowered = target.rsplit("/", 1)[-1].lower()
     suffixes: list[str] = []
     while True:
         dot = lowered.find(".")
         if dot == -1:
             break
-        suffix = lowered[dot:]
-        lowered = lowered[:dot]
-        suffixes.append(suffix)
+        suffixes.append(lowered[dot:])
+        lowered = lowered[dot + 1 :]
     return suffixes
 
 
@@ -137,8 +135,9 @@ def _tag(name: str, rule_id: str, evidence_event_id: str, *, basis: str = "obser
 def classify_knowhow(kind: str, summary: dict[str, str], *, evidence_event_id: str) -> list[dict]:
     """All knowhow tags supported by one event's sanitized metadata.
 
-    Deduplicated by technology name; priority: skill-verified evidence wins
-    over command tokens, over basenames, then extensions, then segments.
+    Deduplicated by technology name. Per-tech priority (first match wins):
+    skill-verified evidence beats command tokens, container basenames,
+    migration segments, then plain file extensions.
     """
     tag_by_name: dict[str, dict] = {}
 

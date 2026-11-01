@@ -26,9 +26,7 @@ from datetime import datetime
 
 from backend.app.classification.knowhow import VOCABULARY
 from backend.app.classification.rules import REGION_LABELS, REGIONS, classify_event
-from backend.app.schemas.base import EventKind
-
-SKILL_EVENT_KIND: EventKind = "skill.activated"
+from backend.app.schemas.base import SKILL_EVENT_KIND
 
 
 @dataclass(frozen=True)
